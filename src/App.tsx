@@ -3,6 +3,7 @@
  * 插件设置界面根组件
  */
 
+import BugReportIcon from "@mui/icons-material/BugReport";
 import LinkIcon from "@mui/icons-material/Link";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import WifiIcon from "@mui/icons-material/Wifi";
@@ -16,7 +17,9 @@ import {
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useAtom } from "jotai";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { DebugDialog } from "./components/DebugDialog";
+import { InfLinkBridge } from "./components/InfLinkBridge";
 import { SettingItem } from "./components/SettingItem";
 import { useNcmTheme } from "./hooks/useNcmTheme";
 import {
@@ -70,6 +73,7 @@ export default function App() {
 
 	return (
 		<ThemeProvider theme={theme}>
+			<InfLinkBridge />
 			<Main />
 		</ThemeProvider>
 	);
@@ -80,6 +84,7 @@ function Main() {
 	const [autoConnect, setAutoConnect] = useAtom(autoConnectAtom);
 	const [status, setStatus] = useAtom(connectionStatusAtom);
 	const [, setError] = useAtom(connectionErrorAtom);
+	const [debugOpen, setDebugOpen] = useState(false);
 
 	const isConnected = status === "connected";
 	const isConnecting = status === "connecting";
@@ -160,6 +165,23 @@ function Main() {
 					/>
 				}
 			/>
+
+			<SettingItem
+				icon={<BugReportIcon />}
+				title="调试面板"
+				description="查看获取到的歌曲状态"
+				action={
+					<Button
+						variant="outlined"
+						size="small"
+						onClick={() => setDebugOpen(true)}
+					>
+						打开
+					</Button>
+				}
+			/>
+
+			<DebugDialog open={debugOpen} onClose={() => setDebugOpen(false)} />
 		</Box>
 	);
 }
