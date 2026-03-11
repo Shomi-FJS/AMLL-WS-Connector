@@ -1,3 +1,3 @@
-# amll-ws-connector
+# AMLL WS Connector
 
-适用于 AMLL Player WS Protocol 协议的 Betterncm 插件实现
+![banner](./preview.png)

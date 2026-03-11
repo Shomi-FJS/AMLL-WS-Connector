@@ -8,6 +8,7 @@ const SRC_DIR = path.join(PROJECT_ROOT, "src");
 const SRC_ENTRY = path.join(SRC_DIR, "index.tsx");
 const DIST_DIR = path.join(PROJECT_ROOT, "dist");
 const MANIFEST_SRC = path.join(PROJECT_ROOT, "manifest.json");
+const PREVIEW_SRC = path.join(PROJECT_ROOT, "preview.png");
 const DEFAULT_PLUGIN_DIR = "C:/betterncm/plugins_dev/amll-ws-connector";
 const DEV_PLUGIN_DIR = process.env.BETTERNCM_PLUGIN_PATH || DEFAULT_PLUGIN_DIR;
 
@@ -24,6 +25,7 @@ async function copyAssets() {
 	};
 
 	await safeCopy(MANIFEST_SRC, path.join(DIST_DIR, "manifest.json"));
+	await safeCopy(PREVIEW_SRC, path.join(DIST_DIR, "preview.png"));
 }
 
 async function buildFrontend() {
