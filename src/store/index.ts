@@ -12,6 +12,7 @@ import type {
 	TimelineInfo,
 	VolumeInfo,
 } from "@/types/inflink";
+import type { AmllLyricContent } from "@/types/ws";
 
 /** WebSocket 服务器地址 */
 export const wsUrlAtom = atomWithStorage(
@@ -54,3 +55,6 @@ export const playModeAtom = atom<PlayMode | null>(null);
 
 /** 当前音量信息 */
 export const volumeInfoAtom = atom<VolumeInfo | null>(null);
+
+/** 当前的歌词信息 */
+export const lyricAtom = atom<AmllLyricContent | null>(null);

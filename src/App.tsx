@@ -16,10 +16,11 @@ import {
 	Typography,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { useAtom } from "jotai";
+import { Provider, useAtom } from "jotai";
 import { useMemo, useState } from "react";
 import { AmllWsClient } from "./components/headless/AmllWsClient";
 import { InfLinkBridge } from "./components/headless/InfLinkBridge";
+import { LyricSync } from "./components/headless/LyricSync";
 import { DebugDialog } from "./components/ui/DebugDialog";
 import { SettingItem } from "./components/ui/SettingItem";
 import { useNcmTheme } from "./hooks/useNcmTheme";
@@ -74,9 +75,12 @@ export default function App() {
 
 	return (
 		<ThemeProvider theme={theme}>
-			<InfLinkBridge />
-			<AmllWsClient />
-			<Main />
+			<Provider>
+				<InfLinkBridge />
+				<AmllWsClient />
+				<LyricSync />
+				<Main />
+			</Provider>
 		</ThemeProvider>
 	);
 }

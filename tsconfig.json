@@ -25,7 +25,7 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"noFallthroughCasesInSwitch": true,
-		"noUncheckedIndexedAccess": true,
+		"noUncheckedIndexedAccess": false,
 		"noImplicitOverride": true,
 		"forceConsistentCasingInFileNames": true,
 

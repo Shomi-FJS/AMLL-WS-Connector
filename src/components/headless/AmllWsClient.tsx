@@ -9,6 +9,7 @@ import {
 	autoConnectAtom,
 	connectionErrorAtom,
 	connectionStatusAtom,
+	lyricAtom,
 	playbackStatusAtom,
 	playModeAtom,
 	songInfoAtom,
@@ -37,6 +38,8 @@ export function AmllWsClient() {
 	const timelineInfo = useAtomValue(timelineInfoAtom);
 	const playMode = useAtomValue(playModeAtom);
 	const volumeInfo = useAtomValue(volumeInfoAtom);
+
+	const lyricContent = useAtomValue(lyricAtom);
 
 	useEffect(() => {
 		if (!hasAutoConnected.current && autoConnect && status === "disconnected") {
@@ -205,6 +208,15 @@ export function AmllWsClient() {
 			shuffle: playMode.isShuffling,
 		});
 	}, [playMode, status, sendWs]);
+
+	useEffect(() => {
+		if (!lyricContent || status !== "connected") return;
+
+		sendWs({
+			update: "setLyric",
+			...lyricContent,
+		});
+	}, [lyricContent, status, sendWs]);
 
 	useEffect(() => {
 		const handleAudioData = (e: Event) => {

@@ -1,0 +1,209 @@
+import type { v3 } from "@/types/ncm";
+import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
+import { alignTranslation, parseLrc, parseYrcStr } from "@/utils/lyricParser";
+import {
+	findModule,
+	getWebpackRequire,
+	type WebpackRequire,
+} from "@/utils/webpack";
+import { BaseLyricAdapter } from "../BaseLyricAdapter";
+
+export class V3LyricAdapter extends BaseLyricAdapter {
+	private store: v3.NCMStore | null = null;
+	private unsubscribeRedux: (() => void) | null = null;
+	private lastSentLyricJson: string | null = null;
+	private initTimer: ReturnType<typeof setInterval> | null = null;
+
+	public async init(): Promise<boolean> {
+		try {
+			const requireInstance = await getWebpackRequire();
+
+			return await new Promise<boolean>((resolve) => {
+				let attempts = 0;
+				const maxAttempts = 20;
+
+				const checkStore = () => {
+					attempts++;
+					this.store = this.findReduxStoreFromDva(requireInstance);
+
+					if (this.store) {
+						if (this.initTimer) clearInterval(this.initTimer);
+						this.initTimer = null;
+
+						this.unsubscribeRedux = this.store.subscribe(() => {
+							this.handleStoreUpdate();
+						});
+
+						this.handleStoreUpdate();
+						resolve(true);
+					} else if (attempts >= maxAttempts) {
+						if (this.initTimer) clearInterval(this.initTimer);
+						this.initTimer = null;
+
+						console.warn("[V3LyricAdapter] 寻找 Dva Redux Store 超时");
+						resolve(false);
+					}
+				};
+
+				checkStore();
+				if (!this.store && attempts < maxAttempts) {
+					this.initTimer = setInterval(checkStore, 1000);
+				}
+			});
+		} catch (e) {
+			console.error("[V3LyricAdapter] 初始化失败", e);
+			return false;
+		}
+	}
+
+	public destroy(): void {
+		if (this.initTimer) {
+			clearInterval(this.initTimer);
+			this.initTimer = null;
+		}
+
+		if (this.unsubscribeRedux) {
+			this.unsubscribeRedux();
+			this.unsubscribeRedux = null;
+		}
+
+		this.store = null;
+		this.lastSentLyricJson = null;
+	}
+
+	private handleStoreUpdate() {
+		if (!this.store) return;
+
+		const state = this.store.getState();
+		const lyricState = state["async:lyric"];
+
+		if (!lyricState || lyricState.isLoading) return;
+
+		const amllLyric = this.parseNcmLyric(lyricState);
+		if (!amllLyric) return;
+
+		const currentJson = JSON.stringify(amllLyric);
+
+		if (currentJson === this.lastSentLyricJson) {
+			return;
+		}
+
+		this.lastSentLyricJson = currentJson;
+
+		if (this.onLyricUpdate) {
+			this.onLyricUpdate(amllLyric);
+		}
+	}
+
+	public fetchLyric(): void {
+		// async:lyric 只有在用户打开了会显示歌词的页面或者组件才会有歌词
+		// dispatch 这个 action 以便我们无论如何都能获取到歌词
+		if (this.store) {
+			this.store.dispatch({
+				type: "async:lyric/fetchLyric",
+				payload: { force: true },
+			});
+		}
+	}
+
+	private parseNcmLyric(
+		rawState: v3.NcmAsyncLyricState,
+	): AmllLyricContent | null {
+		if (rawState.yrcInfo?.yrc) {
+			const yrcLines = parseYrcStr(rawState.yrcInfo.yrc);
+
+			if (yrcLines.length > 0) {
+				if (rawState.yrcInfo.yrcTrans) {
+					const transLines = parseLrc(rawState.yrcInfo.yrcTrans);
+					alignTranslation(yrcLines, transLines, false);
+				}
+				if (rawState.yrcInfo.yrcRoma) {
+					const romaLines = parseLrc(rawState.yrcInfo.yrcRoma);
+					alignTranslation(yrcLines, romaLines, true);
+				}
+
+				return {
+					format: "structured",
+					lines: yrcLines,
+				};
+			}
+		}
+
+		const lines = rawState.lyricLines;
+		if (!lines || !Array.isArray(lines) || lines.length === 0) {
+			return null;
+		}
+
+		const parsedLines: AmllLyricLine[] = [];
+		const tLines = rawState.tlyricLines || [];
+		const romaLines = rawState.romaLyricLines || [];
+
+		for (let i = 0; i < lines.length; i++) {
+			const current = lines[i];
+			const next = lines[i + 1];
+
+			if (!current) continue;
+
+			const startTime = Math.max(0, Math.floor(current.time * 1000));
+
+			const endTime = next
+				? Math.max(0, Math.floor(next.time * 1000))
+				: startTime + 100000;
+
+			const safeEndTime = Math.max(startTime, endTime);
+
+			const translatedLyric = tLines[i]?.lyric || "";
+			const romanLyric = romaLines[i]?.lyric || "";
+
+			parsedLines.push({
+				startTime,
+				endTime: safeEndTime,
+				translatedLyric,
+				romanLyric,
+				words: [
+					{
+						startTime,
+						endTime: safeEndTime,
+						word: current.lyric,
+					},
+				],
+			});
+		}
+
+		return {
+			format: "structured",
+			lines: parsedLines,
+		};
+	}
+
+	private findReduxStoreFromDva(require: WebpackRequire): v3.NCMStore | null {
+		try {
+			const dvaModule = findModule<v3.DvaToolModule>(
+				require,
+				(exports: unknown): exports is v3.DvaToolModule => {
+					return (
+						!!exports &&
+						typeof exports === "object" &&
+						"a" in exports &&
+						!!exports.a &&
+						typeof exports.a === "object" &&
+						"getStore" in exports.a &&
+						typeof exports.a.getStore === "function"
+					);
+				},
+			);
+
+			if (
+				dvaModule?.a.inited &&
+				dvaModule.a.app?._store &&
+				typeof dvaModule.a.app._store.subscribe === "function"
+			) {
+				return dvaModule.a.app._store;
+			}
+		} catch (e) {
+			console.error("[V3LyricAdapter] 通过 dva-tool 寻找 Store 时发生错误:", e);
+		}
+
+		return null;
+	}
+}
