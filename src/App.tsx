@@ -18,6 +18,7 @@ import {
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useAtom } from "jotai";
 import { useMemo, useState } from "react";
+import { AmllWsClient } from "./components/AmllWsClient";
 import { DebugDialog } from "./components/DebugDialog";
 import { InfLinkBridge } from "./components/InfLinkBridge";
 import { SettingItem } from "./components/SettingItem";
@@ -74,6 +75,7 @@ export default function App() {
 	return (
 		<ThemeProvider theme={theme}>
 			<InfLinkBridge />
+			<AmllWsClient />
 			<Main />
 		</ThemeProvider>
 	);
@@ -96,15 +98,6 @@ function Main() {
 		} else {
 			setStatus("connecting");
 			setError("");
-			const ws = new WebSocket(wsUrl);
-			ws.onopen = () => setStatus("connected");
-			ws.onerror = () => {
-				setStatus("error");
-				setError("无法连接到服务器，请检查地址是否正确");
-			};
-			ws.onclose = () => {
-				if (status !== "error") setStatus("disconnected");
-			};
 		}
 	}
 

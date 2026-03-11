@@ -59,11 +59,18 @@ export function InfLinkBridge() {
 			const onVolumeChange = (e: CustomEvent<VolumeInfo>) =>
 				setVolumeInfo(e.detail);
 
+			const onAudioData = (e: CustomEvent<AudioDataInfo>) => {
+				AudioDataBus.dispatchEvent(
+					new CustomEvent("audiodata", { detail: e.detail }),
+				);
+			};
+
 			resolvedApi.addEventListener("songChange", onSongChange);
 			resolvedApi.addEventListener("playStateChange", onPlayStateChange);
 			resolvedApi.addEventListener("rawTimelineUpdate", onTimelineUpdate);
 			resolvedApi.addEventListener("playModeChange", onPlayModeChange);
 			resolvedApi.addEventListener("volumeChange", onVolumeChange);
+			resolvedApi.addEventListener("audioDataUpdate", onAudioData);
 
 			return () => {
 				resolvedApi.removeEventListener("songChange", onSongChange);
@@ -71,6 +78,7 @@ export function InfLinkBridge() {
 				resolvedApi.removeEventListener("rawTimelineUpdate", onTimelineUpdate);
 				resolvedApi.removeEventListener("playModeChange", onPlayModeChange);
 				resolvedApi.removeEventListener("volumeChange", onVolumeChange);
+				resolvedApi.removeEventListener("audioDataUpdate", onAudioData);
 				setReady(false);
 			};
 		}
@@ -103,22 +111,6 @@ export function InfLinkBridge() {
 		setVolumeInfo,
 		setReady,
 	]);
-
-	useEffect(() => {
-		const api = window.InfLinkApi;
-		if (!api) return;
-
-		const onAudioData = (e: CustomEvent<AudioDataInfo>) => {
-			AudioDataBus.dispatchEvent(
-				new CustomEvent("audiodata", { detail: e.detail }),
-			);
-		};
-
-		api.addEventListener("audioDataUpdate", onAudioData);
-		return () => {
-			api.removeEventListener("audioDataUpdate", onAudioData);
-		};
-	}, []);
 
 	return null;
 }
