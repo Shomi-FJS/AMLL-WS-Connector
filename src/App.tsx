@@ -29,7 +29,7 @@ import {
 	connectionErrorAtom,
 	connectionStatusAtom,
 	wsUrlAtom,
-} from "./utils/atoms";
+} from "./store";
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
 	connected: "已连接",

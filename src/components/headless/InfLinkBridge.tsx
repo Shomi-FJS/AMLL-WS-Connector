@@ -5,6 +5,14 @@
 
 import { useSetAtom } from "jotai";
 import { useEffect } from "react";
+import {
+	infLinkReadyAtom,
+	playbackStatusAtom,
+	playModeAtom,
+	songInfoAtom,
+	timelineInfoAtom,
+	volumeInfoAtom,
+} from "@/store";
 import type {
 	AudioDataInfo,
 	PlaybackStatus,
@@ -13,14 +21,6 @@ import type {
 	TimelineInfo,
 	VolumeInfo,
 } from "@/types/inflink";
-import {
-	infLinkReadyAtom,
-	playbackStatusAtom,
-	playModeAtom,
-	songInfoAtom,
-	timelineInfoAtom,
-	volumeInfoAtom,
-} from "@/utils/atoms";
 
 /**
  * 音频数据总线。

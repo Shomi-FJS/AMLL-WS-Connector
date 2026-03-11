@@ -22,7 +22,7 @@ import {
 	songInfoAtom,
 	timelineInfoAtom,
 	volumeInfoAtom,
-} from "@/utils/atoms";
+} from "@/store";
 
 function DebugSection({
 	title,

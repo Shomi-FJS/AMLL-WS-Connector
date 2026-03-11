@@ -5,11 +5,6 @@
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
-import type {
-	AudioDataInfo,
-	RepeatMode as NCMRepeatMode,
-} from "@/types/inflink";
-import type { AmllMessage, AmllRepeatMode, AmllStateUpdate } from "@/types/ws";
 import {
 	autoConnectAtom,
 	connectionErrorAtom,
@@ -20,7 +15,12 @@ import {
 	timelineInfoAtom,
 	volumeInfoAtom,
 	wsUrlAtom,
-} from "@/utils/atoms";
+} from "@/store";
+import type {
+	AudioDataInfo,
+	RepeatMode as NCMRepeatMode,
+} from "@/types/inflink";
+import type { AmllMessage, AmllRepeatMode, AmllStateUpdate } from "@/types/ws";
 import { AudioDataBus } from "./InfLinkBridge";
 
 export function AmllWsClient() {
