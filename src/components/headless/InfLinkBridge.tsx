@@ -12,7 +12,7 @@ import type {
 	SongInfo,
 	TimelineInfo,
 	VolumeInfo,
-} from "../types/inflink";
+} from "@/types/inflink";
 import {
 	infLinkReadyAtom,
 	playbackStatusAtom,
@@ -20,7 +20,7 @@ import {
 	songInfoAtom,
 	timelineInfoAtom,
 	volumeInfoAtom,
-} from "../utils/atoms";
+} from "@/utils/atoms";
 
 /**
  * 音频数据总线。

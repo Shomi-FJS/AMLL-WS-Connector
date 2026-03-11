@@ -18,10 +18,10 @@ import {
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useAtom } from "jotai";
 import { useMemo, useState } from "react";
-import { AmllWsClient } from "./components/AmllWsClient";
-import { DebugDialog } from "./components/DebugDialog";
-import { InfLinkBridge } from "./components/InfLinkBridge";
-import { SettingItem } from "./components/SettingItem";
+import { AmllWsClient } from "./components/headless/AmllWsClient";
+import { InfLinkBridge } from "./components/headless/InfLinkBridge";
+import { DebugDialog } from "./components/ui/DebugDialog";
+import { SettingItem } from "./components/ui/SettingItem";
 import { useNcmTheme } from "./hooks/useNcmTheme";
 import {
 	autoConnectAtom,
