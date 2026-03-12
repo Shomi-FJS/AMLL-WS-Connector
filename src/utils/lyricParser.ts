@@ -39,21 +39,22 @@ export function parseYrcStr(yrcStr: string): AmllLyricLine[] {
 
 		// (wordStart,wordDuration,不知道有什么用的0)wordText
 		const wordRegex = /\((\d+),(\d+),\d+\)(.*?)(?=\(\d+,\d+,\d+\)|$)/g;
-		let match: RegExpMatchArray | null;
 		const words: AmllLyricWord[] = [];
 
-		match = wordRegex.exec(content);
-		while (match !== null) {
+		for (const match of content.matchAll(wordRegex)) {
 			const wordStart = parseInt(match[1], 10);
 			const wordDur = parseInt(match[2], 10);
 			const wordText = match[3];
+
+			if (wordText.trim() === "") {
+				continue;
+			}
 
 			words.push({
 				startTime: wordStart,
 				endTime: wordStart + wordDur,
 				word: wordText,
 			});
-			match = wordRegex.exec(content);
 		}
 
 		if (words.length > 0) {
@@ -68,35 +69,4 @@ export function parseYrcStr(yrcStr: string): AmllLyricLine[] {
 		}
 	}
 	return result;
-}
-
-/**
- * 将翻译或罗马音对齐到 YRC 行上
- */
-export function alignTranslation(
-	yrcLines: AmllLyricLine[],
-	transLines: { time: number; text: string }[],
-	isRoma: boolean,
-) {
-	let i = 0;
-	let j = 0;
-
-	while (i < yrcLines.length && j < transLines.length) {
-		const yrcTime = yrcLines[i].startTime;
-		const transTime = transLines[j].time;
-
-		if (Math.abs(yrcTime - transTime) <= 100) {
-			if (isRoma) {
-				yrcLines[i].romanLyric = transLines[j].text;
-			} else {
-				yrcLines[i].translatedLyric = transLines[j].text;
-			}
-			i++;
-			j++;
-		} else if (yrcTime < transTime) {
-			i++;
-		} else {
-			j++;
-		}
-	}
 }

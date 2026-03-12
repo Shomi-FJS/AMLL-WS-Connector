@@ -1,6 +1,6 @@
 import type { v3 } from "@/types/ncm";
 import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
-import { alignTranslation, parseLrc, parseYrcStr } from "@/utils/lyricParser";
+import { parseLrc, parseYrcStr } from "@/utils/lyricParser";
 import {
 	findModule,
 	getWebpackRequire,
@@ -113,13 +113,13 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 			const yrcLines = parseYrcStr(rawState.yrcInfo.yrc);
 
 			if (yrcLines.length > 0) {
-				if (rawState.yrcInfo.yrcTrans) {
-					const transLines = parseLrc(rawState.yrcInfo.yrcTrans);
-					alignTranslation(yrcLines, transLines, false);
-				}
-				if (rawState.yrcInfo.yrcRoma) {
-					const romaLines = parseLrc(rawState.yrcInfo.yrcRoma);
-					alignTranslation(yrcLines, romaLines, true);
+				// 网易云已经帮我们关联好了翻译罗马音和主歌词，直接按索引匹配即可，下同
+				const tLines = parseLrc(rawState.yrcInfo.yrcTrans || "");
+				const romaLines = parseLrc(rawState.yrcInfo.yrcRoma || "");
+
+				for (let i = 0; i < yrcLines.length; i++) {
+					yrcLines[i].translatedLyric = tLines[i]?.text || "";
+					yrcLines[i].romanLyric = romaLines[i]?.text || "";
 				}
 
 				return {
@@ -140,17 +140,24 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 
 		for (let i = 0; i < lines.length; i++) {
 			const current = lines[i];
-			const next = lines[i + 1];
-
-			if (!current) continue;
-
+			const text = current.lyric.trim();
 			const startTime = Math.max(0, Math.floor(current.time * 1000));
 
-			const endTime = next
+			if (text === "") {
+				if (parsedLines.length > 0) {
+					const prevLine = parsedLines[parsedLines.length - 1];
+					const safeEndTime = Math.max(prevLine.startTime, startTime);
+					prevLine.endTime = safeEndTime;
+					prevLine.words[0].endTime = safeEndTime;
+				}
+				continue;
+			}
+
+			const next = lines[i + 1];
+			const defaultEndTime = next
 				? Math.max(0, Math.floor(next.time * 1000))
 				: startTime + 100000;
-
-			const safeEndTime = Math.max(startTime, endTime);
+			const safeEndTime = Math.max(startTime, defaultEndTime);
 
 			const translatedLyric = tLines[i]?.lyric || "";
 			const romanLyric = romaLines[i]?.lyric || "";

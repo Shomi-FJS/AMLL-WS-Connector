@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import type { BaseLyricAdapter } from "@/adapters/BaseLyricAdapter";
+import { V2LyricAdapter } from "@/adapters/v2/adapter";
 import { V3LyricAdapter } from "@/adapters/v3/adapter";
 import { lyricAtom, songInfoAtom } from "@/store";
 
@@ -10,7 +11,15 @@ export function LyricSync() {
 	const adapterRef = useRef<BaseLyricAdapter | null>(null);
 
 	useEffect(() => {
-		const adapter = new V3LyricAdapter();
+		let adapter: BaseLyricAdapter;
+
+		// 网易云音乐 v2 客户端特有的 NEJ 框架全局对象
+		if (window.NEJ) {
+			adapter = new V2LyricAdapter();
+		} else {
+			adapter = new V3LyricAdapter();
+		}
+
 		adapterRef.current = adapter;
 
 		adapter.subscribe((lyricContent) => {

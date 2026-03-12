@@ -38,7 +38,8 @@ async function buildFrontend() {
 			outdir: DIST_DIR,
 			target: "browser",
 			format: "iife",
-			minify: true,
+			minify: !!isDev,
+			features: isDev ? ["DEV"] : [],
 			define: {
 				"process.env.NODE_ENV": JSON.stringify(
 					isDev ? "development" : "production",
