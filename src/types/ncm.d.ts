@@ -201,6 +201,7 @@ export namespace v2 {
 		/**
 		 * 派发/广播事件
 		 * @see https://github.com/apoint123/nej/blob/39306b9a2c0f301bbb758e8e36f29f809137867b/src/base/event.js#L754-L762
+		 * @note 原名 `_$dispatchEvent`
 		 * @param element 触发事件的主体对象或节点，通常是某个播放器实例或全局对象
 		 * @param type 事件类型，不区分大小写 (如 "lrctimeupdate", "lrcload")
 		 * @param options 随事件广播的数据载荷
@@ -213,6 +214,7 @@ export namespace v2 {
 	 * @see https://github.com/apoint123/nej/blob/39306b9a2c0f301bbb758e8e36f29f809137867b/src/base/global.js
 	 */
 	export interface NEJStatic {
+		// 源码里就是单字母变量，这些没有被混淆，命名空间如 nej.v 也是
 		O: Record<string, never>;
 		R: never[];
 		F: () => boolean;
@@ -261,6 +263,7 @@ declare global {
 		 *
 		 * 用于在不修改原函数的基础上，无侵入地插入前置或后置逻辑
 		 * @see https://github.com/apoint123/nej/blob/39306b9a2c0f301bbb758e8e36f29f809137867b/src/base/global.js#L288-L319
+		 * @note 原名 `_$aop`
 		 * @param before 前置拦截器，在原函数之前执行
 		 * @param after 后置拦截器，在原函数之后执行
 		 * @returns 返回一个增强后的包装函数，签名与原函数完全一致
