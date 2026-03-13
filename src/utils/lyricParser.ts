@@ -1,5 +1,13 @@
 import type { AmllLyricLine, AmllLyricWord } from "@/types/ws";
 
+export interface RawLrcLine {
+	/**
+	 * 单位为秒
+	 */
+	time: number;
+	text: string;
+}
+
 export function parseLrc(lrcStr: string): { time: number; text: string }[] {
 	if (!lrcStr) return [];
 	const lines = lrcStr.split("\n");
@@ -26,7 +34,7 @@ export function parseLrc(lrcStr: string): { time: number; text: string }[] {
 	return result;
 }
 
-export function parseYrcStr(yrcStr: string): AmllLyricLine[] {
+export function parseYrc(yrcStr: string): AmllLyricLine[] {
 	if (!yrcStr) return [];
 	const lines = yrcStr.split("\n");
 	const result: AmllLyricLine[] = [];
@@ -69,4 +77,62 @@ export function parseYrcStr(yrcStr: string): AmllLyricLine[] {
 		}
 	}
 	return result;
+}
+
+export function mergeSubLyrics(
+	yrcLines: AmllLyricLine[],
+	transTexts: string[],
+	romaTexts: string[],
+): AmllLyricLine[] {
+	for (let i = 0; i < yrcLines.length; i++) {
+		yrcLines[i].translatedLyric = transTexts[i] || "";
+		yrcLines[i].romanLyric = romaTexts[i] || "";
+	}
+	return yrcLines;
+}
+
+export function buildAmllLyricLines(
+	rawLines: RawLrcLine[],
+	transTexts: string[],
+	romaTexts: string[],
+): AmllLyricLine[] {
+	const parsedLines: AmllLyricLine[] = [];
+
+	for (let i = 0; i < rawLines.length; i++) {
+		const current = rawLines[i];
+		const text = current.text.trim();
+		const startTime = Math.max(0, Math.floor(current.time * 1000));
+
+		if (!text) {
+			if (parsedLines.length > 0) {
+				const prevLine = parsedLines[parsedLines.length - 1];
+				const safeEndTime = Math.max(prevLine.startTime, startTime);
+				prevLine.endTime = safeEndTime;
+				prevLine.words[0].endTime = safeEndTime;
+			}
+			continue;
+		}
+
+		const next = rawLines[i + 1];
+		const defaultEndTime = next
+			? Math.max(0, Math.floor(next.time * 1000))
+			: startTime + 100000;
+		const safeEndTime = Math.max(startTime, defaultEndTime);
+
+		parsedLines.push({
+			startTime,
+			endTime: safeEndTime,
+			translatedLyric: transTexts[i] || "",
+			romanLyric: romaTexts[i] || "",
+			words: [
+				{
+					startTime,
+					endTime: safeEndTime,
+					word: current.text,
+				},
+			],
+		});
+	}
+
+	return parsedLines;
 }

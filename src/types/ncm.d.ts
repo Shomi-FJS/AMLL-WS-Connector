@@ -100,7 +100,7 @@ export namespace v3 {
  * 特别是混淆后的名称几乎肯定会随着版本而变化
  */
 export namespace v2 {
-	export interface NcmV2LyricPayload {
+	export interface LrcLoadPayload {
 		playid: string;
 		lrctype: string;
 		lrcid: number;
@@ -116,8 +116,8 @@ export namespace v2 {
 		uncollected: boolean;
 		yrc: YrcData;
 		roles: Role[];
-		tlyric: AdditionalLyricData;
-		romalrc: AdditionalLyricData;
+		tlyric: SubLyricData;
+		romalrc: SubLyricData;
 		lrc: LyricData;
 		qfy: boolean;
 		sfy: boolean;
@@ -167,7 +167,7 @@ export namespace v2 {
 		version: number;
 	}
 
-	export interface AdditionalLyricData {
+	export interface SubLyricData {
 		version: number;
 		lyric: string;
 		lines: Line[];

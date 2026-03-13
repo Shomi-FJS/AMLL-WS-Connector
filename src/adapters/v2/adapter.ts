@@ -1,7 +1,11 @@
 import { feature } from "bun:bundle";
 import type { v2 } from "@/types/ncm";
 import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
-import { parseYrcStr } from "@/utils/lyricParser";
+import {
+	buildAmllLyricLines,
+	mergeSubLyrics,
+	parseYrc,
+} from "@/utils/lyricParser";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
 
 export class V2LyricAdapter extends BaseLyricAdapter {
@@ -37,7 +41,7 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 								console.log("截获 lrcload", payload);
 							}
 
-							this.handleLrcLoad(payload as v2.NcmV2LyricPayload);
+							this.handleLrcLoad(payload as v2.LrcLoadPayload);
 						} else if (eventName === "lrctimeupdate") {
 							this.handleLrcTimeUpdate(payload as v2.LrcTimeUpdatePayload);
 						}
@@ -70,7 +74,7 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 		// V2 版本似乎无论是否需要展示歌词都会自己去获取歌词
 	}
 
-	private handleLrcLoad(payload: v2.NcmV2LyricPayload) {
+	private handleLrcLoad(payload: v2.LrcLoadPayload) {
 		if (!payload || !payload.lyric) return;
 
 		this.baseLyric = this.parseV2Payload(payload.lyric);
@@ -108,6 +112,9 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	 * 时间轴平移计算
 	 *
 	 * 正数 offset 表示歌词提前显示
+	 *
+	 * 和 v3 不同，v3 修改 offset 后会直接修改 store 中的歌词时间戳，
+	 * 但 v2 只会修改负载属性，需要手动计算
 	 */
 	private applyOffset(
 		baseLyric: AmllLyricContent,
@@ -137,22 +144,19 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	}
 
 	private parseV2Payload(
-		lyricObj: NonNullable<v2.NcmV2LyricPayload["lyric"]>,
+		lyricObj: NonNullable<v2.LrcLoadPayload["lyric"]>,
 	): AmllLyricContent | null {
 		if (lyricObj.yrc?.lyric) {
-			const yrcLines = parseYrcStr(lyricObj.yrc.lyric);
+			const yrcLines = parseYrc(lyricObj.yrc.lyric);
 
 			if (yrcLines.length > 0) {
-				// 网易云已经帮我们关联好了翻译罗马音和主歌词，直接按索引匹配即可，下同
-				const transLines = lyricObj.tlyric?.lines || [];
-				const romaLines = lyricObj.romalrc?.lines || [];
+				const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
+				const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
 
-				for (let i = 0; i < yrcLines.length; i++) {
-					yrcLines[i].translatedLyric = transLines[i]?.lyric || "";
-					yrcLines[i].romanLyric = romaLines[i]?.lyric || "";
-				}
-
-				return { format: "structured", lines: yrcLines };
+				return {
+					format: "structured",
+					lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
+				};
 			}
 		}
 
@@ -161,49 +165,17 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 			Array.isArray(lyricObj.lrc.lines) &&
 			lyricObj.lrc.lines.length > 0
 		) {
-			const lines = lyricObj.lrc.lines;
-			const parsedLines: AmllLyricLine[] = [];
+			const rawLrc = lyricObj.lrc.lines.map((l) => ({
+				time: l.time,
+				text: l.lyric,
+			}));
+			const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
+			const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
 
-			const transLines = lyricObj.tlyric?.lines || [];
-			const romaStrLines = lyricObj.romalrc?.lines || [];
-
-			for (let i = 0; i < lines.length; i++) {
-				const current = lines[i];
-				const text = current.lyric.trim();
-				const startTime = Math.max(0, Math.floor(current.time * 1000));
-
-				if (!text) {
-					if (parsedLines.length > 0) {
-						const prevLine = parsedLines[parsedLines.length - 1];
-						const safeEndTime = Math.max(prevLine.startTime, startTime);
-						prevLine.endTime = safeEndTime;
-						prevLine.words[0].endTime = safeEndTime;
-					}
-					continue;
-				}
-
-				const next = lines[i + 1];
-				const defaultEndTime = next
-					? Math.max(0, Math.floor(next.time * 1000))
-					: startTime + 100000;
-				const safeEndTime = Math.max(startTime, defaultEndTime);
-
-				parsedLines.push({
-					startTime,
-					endTime: safeEndTime,
-					translatedLyric: transLines[i]?.lyric || "",
-					romanLyric: romaStrLines[i]?.lyric || "",
-					words: [
-						{
-							startTime,
-							endTime: safeEndTime,
-							word: current.lyric,
-						},
-					],
-				});
-			}
-
-			return { format: "structured", lines: parsedLines };
+			return {
+				format: "structured",
+				lines: buildAmllLyricLines(rawLrc, tTexts, romaTexts),
+			};
 		}
 
 		return null;
