@@ -12,36 +12,40 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	private currentOffset: number = 0;
 
 	public async init(): Promise<boolean> {
-		const bus = window.NEJ?.P("nej.v");
+		const bus = window.NEJ?.P(
+			/* 名字空间申明 */ "nej.v" /* 事件接口名字空间 */,
+		);
 
 		if (
 			bus &&
-			typeof bus.Ge === "function" &&
-			typeof bus.Ge.e9 === "function"
+			typeof bus.Ge /* _$dispatchEvent */ === "function" &&
+			typeof bus.Ge.e9 /* _$aop */ === "function"
 		) {
 			this.eventBus = bus;
 			this.originalGe = bus.Ge;
 
-			this.eventBus.Ge = this.originalGe.e9((event) => {
-				const eventName = event.args[1];
-				const payload = event.args[2];
+			this.eventBus.Ge /* _$dispatchEvent */ = this.originalGe.e9(
+				/* _$aop */ (event) => {
+					const eventName = event.args[1];
+					const payload = event.args[2];
 
-				if (typeof eventName !== "string") return;
+					if (typeof eventName !== "string") return;
 
-				try {
-					if (eventName === "lrcload") {
-						if (feature("DEV")) {
-							console.log("截获 lrcload", payload);
+					try {
+						if (eventName === "lrcload") {
+							if (feature("DEV")) {
+								console.log("截获 lrcload", payload);
+							}
+
+							this.handleLrcLoad(payload as v2.NcmV2LyricPayload);
+						} else if (eventName === "lrctimeupdate") {
+							this.handleLrcTimeUpdate(payload as v2.LrcTimeUpdatePayload);
 						}
-
-						this.handleLrcLoad(payload as v2.NcmV2LyricPayload);
-					} else if (eventName === "lrctimeupdate") {
-						this.handleLrcTimeUpdate(payload as v2.LrcTimeUpdatePayload);
+					} catch (err) {
+						console.error(`[V2LyricAdapter] 处理事件 ${eventName} 失败`, err);
 					}
-				} catch (err) {
-					console.error(`[V2LyricAdapter] 处理事件 ${eventName} 失败`, err);
-				}
-			});
+				},
+			);
 
 			return true;
 		}
