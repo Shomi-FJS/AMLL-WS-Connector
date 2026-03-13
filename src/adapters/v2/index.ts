@@ -72,6 +72,9 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 
 	public fetchLyric(): void {
 		// V2 版本似乎无论是否需要展示歌词都会自己去获取歌词
+		if (this.baseLyric) {
+			this.emitAdjustedLyric();
+		}
 	}
 
 	private handleLrcLoad(payload: v2.LrcLoadPayload) {

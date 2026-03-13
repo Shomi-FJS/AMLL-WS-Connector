@@ -99,6 +99,8 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 	}
 
 	public fetchLyric(): void {
+		this.lastSentLyricJson = null;
+
 		// async:lyric 只有在用户打开了会显示歌词的页面或者组件才会有歌词
 		// dispatch 这个 action 以便我们无论如何都能获取到歌词
 		if (this.store) {

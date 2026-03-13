@@ -19,7 +19,8 @@ export abstract class BaseLyricAdapter extends TypedEventTarget<LyricAdapterEven
 	public abstract destroy(): void;
 
 	/**
-	 * 触发客户端获取当前歌曲的歌词
+	 * 触发获取当前歌曲的歌词
+	 * @param musicId 歌曲 ID，对于网络请求源必须
 	 */
-	public abstract fetchLyric(): void;
+	public abstract fetchLyric(musicId?: string | number): void | Promise<void>;
 }
