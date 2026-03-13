@@ -1,19 +1,12 @@
 import type { AmllLyricContent } from "@/types/ws";
+import { TypedEventTarget } from "@/utils/TypedEventTarget";
 
-export abstract class BaseLyricAdapter {
-	/**
-	 * 当歌词更新时触发的回调
-	 */
-	protected onLyricUpdate: ((lyric: AmllLyricContent | null) => void) | null =
-		null;
+export interface LyricAdapterEventMap {
+	/** 当歌词解析完成或发生时间轴偏移时派发 */
+	update: CustomEvent<AmllLyricContent | null>;
+}
 
-	/**
-	 * 订阅歌词更新
-	 */
-	public subscribe(callback: (lyric: AmllLyricContent | null) => void): void {
-		this.onLyricUpdate = callback;
-	}
-
+export abstract class BaseLyricAdapter extends TypedEventTarget<LyricAdapterEventMap> {
 	/**
 	 * 初始化适配器并开始监听客户端状态
 	 * @returns 是否初始化成功

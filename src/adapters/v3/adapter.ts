@@ -95,9 +95,7 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 
 		this.lastSentLyricJson = currentJson;
 
-		if (this.onLyricUpdate) {
-			this.onLyricUpdate(amllLyric);
-		}
+		this.dispatch("update", amllLyric);
 	}
 
 	public fetchLyric(): void {

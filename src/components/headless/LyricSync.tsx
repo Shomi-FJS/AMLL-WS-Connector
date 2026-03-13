@@ -4,6 +4,7 @@ import type { BaseLyricAdapter } from "@/adapters/BaseLyricAdapter";
 import { V2LyricAdapter } from "@/adapters/v2/adapter";
 import { V3LyricAdapter } from "@/adapters/v3/adapter";
 import { lyricAtom, songInfoAtom } from "@/store";
+import type { AmllLyricContent } from "@/types/ws";
 
 export function LyricSync() {
 	const setLyric = useSetAtom(lyricAtom);
@@ -22,9 +23,11 @@ export function LyricSync() {
 
 		adapterRef.current = adapter;
 
-		adapter.subscribe((lyricContent) => {
-			setLyric(lyricContent);
-		});
+		const handleLyricUpdate = (event: CustomEvent<AmllLyricContent | null>) => {
+			setLyric(event.detail);
+		};
+
+		adapter.addEventListener("update", handleLyricUpdate);
 
 		adapter.init().then((success) => {
 			if (!success) {
@@ -34,6 +37,7 @@ export function LyricSync() {
 
 		return () => {
 			if (adapterRef.current) {
+				adapterRef.current.removeEventListener("update", handleLyricUpdate);
 				adapterRef.current.destroy();
 				adapterRef.current = null;
 			}

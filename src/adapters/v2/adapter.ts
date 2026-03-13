@@ -97,15 +97,15 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	}
 
 	private emitAdjustedLyric(): void {
-		if (!this.baseLyric || !this.onLyricUpdate) return;
+		if (!this.baseLyric) return;
 
 		if (this.currentOffset === 0) {
-			this.onLyricUpdate(this.baseLyric);
+			this.dispatch("update", this.baseLyric);
 			return;
 		}
 
 		const adjustedLyric = this.applyOffset(this.baseLyric, this.currentOffset);
-		this.onLyricUpdate(adjustedLyric);
+		this.dispatch("update", adjustedLyric);
 	}
 
 	/**
