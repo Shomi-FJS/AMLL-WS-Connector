@@ -6,9 +6,12 @@ import {
 	mergeSubLyrics,
 	parseYrc,
 } from "@/utils/lyricParser";
+import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
 
 export class V2LyricAdapter extends BaseLyricAdapter {
+	public readonly id = LYRIC_SOURCE_UUID_BUILTIN_NCM;
+
 	private originalGe: v2.NejEventBus["Ge"] | null = null;
 	private eventBus: v2.NejEventBus | null = null;
 

@@ -6,6 +6,7 @@ import {
 	parseLrc,
 	parseYrc,
 } from "@/utils/lyricParser";
+import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import {
 	findModule,
 	getWebpackRequire,
@@ -14,6 +15,8 @@ import {
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
 
 export class V3LyricAdapter extends BaseLyricAdapter {
+	public readonly id = LYRIC_SOURCE_UUID_BUILTIN_NCM;
+
 	private store: v3.NCMStore | null = null;
 	private unsubscribeRedux: (() => void) | null = null;
 	private lastSentLyricJson: string | null = null;

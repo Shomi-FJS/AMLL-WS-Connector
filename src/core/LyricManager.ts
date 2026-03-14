@@ -2,75 +2,71 @@ import type {
 	BaseLyricAdapter,
 	LyricAdapterEventMap,
 } from "@/adapters/BaseLyricAdapter";
+import type { SongInfo } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
 
 export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
-	private ncmAdapter: BaseLyricAdapter;
-	private ttmlAdapter: BaseLyricAdapter;
+	private adapters: BaseLyricAdapter[] = [];
+	private caches: Map<string, AmllLyricContent | null> = new Map();
 
-	private ncmLyric: AmllLyricContent | null = null;
-	private ttmlLyric: AmllLyricContent | null = null;
 	private currentMusicId: string | number | null = null;
 
-	constructor(ncmAdapter: BaseLyricAdapter, ttmlAdapter: BaseLyricAdapter) {
-		super();
-		this.ncmAdapter = ncmAdapter;
-		this.ttmlAdapter = ttmlAdapter;
-
-		this.handleNcmUpdate = this.handleNcmUpdate.bind(this);
-		this.handleTtmlUpdate = this.handleTtmlUpdate.bind(this);
-
-		this.ncmAdapter.addEventListener("update", this.handleNcmUpdate);
-		this.ttmlAdapter.addEventListener("update", this.handleTtmlUpdate);
-	}
-
-	public async init(): Promise<boolean> {
-		const [ncmSuccess, ttmlSuccess] = await Promise.all([
-			this.ncmAdapter.init(),
-			this.ttmlAdapter.init(),
-		]);
-		return ncmSuccess && ttmlSuccess;
+	public async init(): Promise<void> {
+		await Promise.all(this.adapters.map((a) => a.init()));
 	}
 
 	public destroy(): void {
-		this.ncmAdapter.removeEventListener("update", this.handleNcmUpdate);
-		this.ttmlAdapter.removeEventListener("update", this.handleTtmlUpdate);
-
-		this.ncmAdapter.destroy();
-		this.ttmlAdapter.destroy();
+		for (const adapter of this.adapters) {
+			adapter.removeEventListener("update", this.handleAdapterUpdate);
+			adapter.destroy();
+		}
+		this.adapters = [];
+		this.caches.clear();
 	}
 
-	public fetchLyric(musicId: string | number): void {
-		if (this.currentMusicId !== musicId) {
-			this.currentMusicId = musicId;
-			this.ncmLyric = null;
-			this.ttmlLyric = null;
+	public setAdapters(adapters: BaseLyricAdapter[]) {
+		for (const adapter of this.adapters) {
+			adapter.removeEventListener("update", this.handleAdapterUpdate);
+		}
+
+		this.adapters = adapters;
+		this.caches.clear();
+		for (const adapter of this.adapters) {
+			adapter.addEventListener("update", this.handleAdapterUpdate);
+		}
+	}
+
+	public fetchLyric(songInfo: SongInfo): void {
+		if (this.currentMusicId !== songInfo.ncmId) {
+			this.currentMusicId = songInfo.ncmId;
+			this.caches.clear();
 			this.dispatch("update", null);
 		}
 
-		this.ttmlAdapter.fetchLyric(musicId);
-		this.ncmAdapter.fetchLyric(musicId);
+		for (const adapter of this.adapters) {
+			adapter.fetchLyric(songInfo);
+		}
 	}
 
-	private handleNcmUpdate(event: CustomEvent<AmllLyricContent | null>) {
-		this.ncmLyric = event.detail;
-		this.evaluateAndDispatch();
-	}
+	private handleAdapterUpdate = (
+		event: CustomEvent<AmllLyricContent | null>,
+	) => {
+		const adapter = event.currentTarget as BaseLyricAdapter;
+		const lyric = event.detail;
 
-	private handleTtmlUpdate(event: CustomEvent<AmllLyricContent | null>) {
-		this.ttmlLyric = event.detail;
+		this.caches.set(adapter.id, lyric);
 		this.evaluateAndDispatch();
-	}
+	};
 
 	private evaluateAndDispatch() {
-		if (this.ttmlLyric) {
-			this.dispatch("update", this.ttmlLyric);
-			return;
-		}
+		for (const adapter of this.adapters) {
+			const cachedLyric = this.caches.get(adapter.id);
 
-		if (this.ncmLyric) {
-			this.dispatch("update", this.ncmLyric);
+			if (cachedLyric) {
+				this.dispatch("update", cachedLyric);
+				return;
+			}
 		}
 	}
 }

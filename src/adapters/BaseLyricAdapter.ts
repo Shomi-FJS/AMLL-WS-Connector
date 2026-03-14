@@ -1,3 +1,4 @@
+import type { SongInfo } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
 
@@ -7,6 +8,11 @@ export interface LyricAdapterEventMap {
 }
 
 export abstract class BaseLyricAdapter extends TypedEventTarget<LyricAdapterEventMap> {
+	/**
+	 * 适配器的唯一标识符，对应 LyricSource 的 id
+	 */
+	public abstract readonly id: string;
+
 	/**
 	 * 初始化适配器并开始监听客户端状态
 	 * @returns 是否初始化成功
@@ -20,7 +26,7 @@ export abstract class BaseLyricAdapter extends TypedEventTarget<LyricAdapterEven
 
 	/**
 	 * 触发获取当前歌曲的歌词
-	 * @param musicId 歌曲 ID，对于网络请求源必须
+	 * @param songInfo 完整的歌曲信息
 	 */
-	public abstract fetchLyric(musicId?: string | number): void | Promise<void>;
+	public abstract fetchLyric(songInfo: SongInfo): void | Promise<void>;
 }
