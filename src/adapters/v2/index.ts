@@ -3,6 +3,7 @@ import type { v2 } from "@/types/ncm";
 import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
 import {
 	buildAmllLyricLines,
+	type LrcLine,
 	mergeSubLyrics,
 	parseYrc,
 } from "@/utils/lyricParser";
@@ -171,7 +172,7 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 			Array.isArray(lyricObj.lrc.lines) &&
 			lyricObj.lrc.lines.length > 0
 		) {
-			const rawLrc = lyricObj.lrc.lines.map((l) => ({
+			const rawLrc: LrcLine[] = lyricObj.lrc.lines.map((l) => ({
 				time: l.time,
 				text: l.lyric,
 			}));

@@ -1,6 +1,6 @@
 import type { AmllLyricLine, AmllLyricWord } from "@/types/ws";
 
-export interface RawLrcLine {
+export interface LrcLine {
 	/**
 	 * 单位为秒
 	 */
@@ -8,10 +8,10 @@ export interface RawLrcLine {
 	text: string;
 }
 
-export function parseLrc(lrcStr: string): { time: number; text: string }[] {
+export function parseLrc(lrcStr: string): LrcLine[] {
 	if (!lrcStr) return [];
 	const lines = lrcStr.split("\n");
-	const result = [];
+	const result: LrcLine[] = [];
 	const regex = /\[(\d{2,3}):(\d{2})(?:\.(\d{2,3}))?\](.*)/;
 
 	for (const line of lines) {
@@ -92,14 +92,14 @@ export function mergeSubLyrics(
 }
 
 export function buildAmllLyricLines(
-	rawLines: RawLrcLine[],
+	lrcLines: LrcLine[],
 	transTexts: string[],
 	romaTexts: string[],
 ): AmllLyricLine[] {
 	const parsedLines: AmllLyricLine[] = [];
 
-	for (let i = 0; i < rawLines.length; i++) {
-		const current = rawLines[i];
+	for (let i = 0; i < lrcLines.length; i++) {
+		const current = lrcLines[i];
 		const text = current.text.trim();
 		const startTime = Math.max(0, Math.floor(current.time * 1000));
 
@@ -113,7 +113,7 @@ export function buildAmllLyricLines(
 			continue;
 		}
 
-		const next = rawLines[i + 1];
+		const next = lrcLines[i + 1];
 		const defaultEndTime = next
 			? Math.max(0, Math.floor(next.time * 1000))
 			: startTime + 100000;
