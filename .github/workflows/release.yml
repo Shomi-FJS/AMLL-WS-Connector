@@ -1,0 +1,52 @@
+name: 构建并发布
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    name: 构建并发布
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 安装 Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: 安装依赖
+        run: bun install --production
+
+      - name: 构建项目
+        run: bun run build
+
+      - name: 部署到插件商店分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: release
+          force_orphan: true
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
+
+      - name: 打包插件文件
+        run: |
+          Compress-Archive -Path dist/* -DestinationPath AMLL-WS-Connector.zip
+          Rename-Item -Path AMLL-WS-Connector.zip -NewName AMLL-WS-Connector.plugin
+        shell: powershell
+
+      - name: 提取更新日志
+        run: bun run scripts/extract-changelog.ts
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: RELEASE_NOTES.md
+          files: AMLL-WS-Connector.plugin

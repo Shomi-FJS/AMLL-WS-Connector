@@ -9,15 +9,18 @@
 		"dev": "bun scripts/build.ts --dev --watch",
 		"typecheck": "tsc -b",
 		"lint": "bun biome check .",
-		"format": "bun biome format . --write"
+		"format": "bun biome format . --write",
+		"cs:add": "bun changeset add",
+		"cs:version": "bun changeset version"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.6",
+		"@changesets/cli": "^2.30.0",
 		"@types/bun": "^1.3.10",
-		"redux": "^5.0.1",
-		"typescript": "^5.9.3",
 		"@types/react": "^19.2.14",
-		"@types/react-dom": "^19.2.3"
+		"@types/react-dom": "^19.2.3",
+		"redux": "^5.0.1",
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
 		"@emotion/cache": "^11.14.0",
