@@ -5,6 +5,7 @@
 
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import LinkIcon from "@mui/icons-material/Link";
@@ -16,6 +17,7 @@ import {
 	Button,
 	CircularProgress,
 	Collapse,
+	InputAdornment,
 	Switch,
 	TextField,
 	Typography,
@@ -35,6 +37,7 @@ import {
 	type ConnectionStatus,
 	connectionErrorAtom,
 	connectionStatusAtom,
+	timelineOffsetAtom,
 	wsUrlAtom,
 } from "./store";
 
@@ -105,6 +108,8 @@ function Main() {
 	const [displayError, setDisplayError] = useState(error);
 	const [debugOpen, setDebugOpen] = useState(false);
 	const [sourcesDialogOpen, setSourcesDialogOpen] = useState(false);
+	const [timelineOffset, setTimelineOffset] = useAtom(timelineOffsetAtom);
+	const [localOffset, setLocalOffset] = useState(timelineOffset.toString());
 
 	const isConnected = status === "connected";
 	const isConnecting = status === "connecting";
@@ -124,6 +129,19 @@ function Main() {
 			setDisplayError(error);
 		}
 	}, [error]);
+
+	useEffect(() => {
+		setLocalOffset(timelineOffset.toString());
+	}, [timelineOffset]);
+
+	const handleOffsetCommit = () => {
+		const parsed = parseInt(localOffset, 10);
+		if (!Number.isNaN(parsed)) {
+			setTimelineOffset(parsed);
+		} else {
+			setLocalOffset(timelineOffset.toString());
+		}
+	};
 
 	return (
 		<Box sx={{ pb: 4, pt: 1 }}>
@@ -205,6 +223,35 @@ function Main() {
 					<Switch
 						checked={autoConnect}
 						onChange={(_, checked) => setAutoConnect(checked)}
+					/>
+				}
+			/>
+
+			<SettingItem
+				icon={<AccessTimeIcon />}
+				title="播放进度偏移量"
+				description="正数表示延迟，负数表示提前"
+				action={
+					<TextField
+						type="number"
+						size="small"
+						value={localOffset}
+						onChange={(e) => setLocalOffset(e.target.value)}
+						onBlur={handleOffsetCommit}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								e.preventDefault();
+								(e.target as HTMLInputElement).blur();
+							}
+						}}
+						sx={{ width: 140 }}
+						slotProps={{
+							input: {
+								endAdornment: (
+									<InputAdornment position="end">ms</InputAdornment>
+								),
+							},
+						}}
 					/>
 				}
 			/>

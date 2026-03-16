@@ -14,6 +14,7 @@ import {
 	playModeAtom,
 	songInfoAtom,
 	timelineInfoAtom,
+	timelineOffsetAtom,
 	volumeInfoAtom,
 	wsUrlAtom,
 } from "@/store";
@@ -38,6 +39,7 @@ export function AmllWsClient() {
 	const timelineInfo = useAtomValue(timelineInfoAtom);
 	const playMode = useAtomValue(playModeAtom);
 	const volumeInfo = useAtomValue(volumeInfoAtom);
+	const timelineOffset = useAtomValue(timelineOffsetAtom);
 
 	const lyricContent = useAtomValue(lyricAtom);
 
@@ -180,11 +182,17 @@ export function AmllWsClient() {
 
 	useEffect(() => {
 		if (!timelineInfo || status !== "connected") return;
+
+		const adjustedProgress = Math.max(
+			0,
+			timelineInfo.currentTime - timelineOffset,
+		);
+
 		sendWs({
 			update: "progress",
-			progress: Math.floor(timelineInfo.currentTime),
+			progress: Math.floor(adjustedProgress),
 		});
-	}, [timelineInfo, status, sendWs]);
+	}, [timelineInfo, timelineOffset, status, sendWs]);
 
 	useEffect(() => {
 		if (!volumeInfo || status !== "connected") return;

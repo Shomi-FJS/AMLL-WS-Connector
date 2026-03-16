@@ -119,3 +119,13 @@ export const lyricSourcesConfigAtom = atomWithStorage<ConfiguredLyricSource[]>(
 export const lyricSearchStatusAtom = atom<Record<string, LyricSearchStatus>>(
 	{},
 );
+
+/**
+ * 播放进度偏移量（毫秒）
+ *
+ * 正数表示延迟，负数表示提前
+ */
+export const timelineOffsetAtom = atomWithStorage<number>(
+	"amll-ws-connector:timelineOffset",
+	0,
+);
