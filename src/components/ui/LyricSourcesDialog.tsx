@@ -1,5 +1,8 @@
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DragHandleIcon from "@mui/icons-material/DragHandle";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
 	Alert,
 	Box,
@@ -12,7 +15,10 @@ import {
 	IconButton,
 	List,
 	ListItem,
+	ListItemIcon,
 	ListItemText,
+	Menu,
+	MenuItem,
 	Switch,
 	TextField,
 	Tooltip,
@@ -51,6 +57,9 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 
 	const [dragIndex, setDragIndex] = useState<number | null>(null);
 	const [dropLineIndex, setDropLineIndex] = useState<number | null>(null);
+
+	const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+	const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null);
 
 	const handleToggle = (index: number) => {
 		const newSources = [...sources];
@@ -137,6 +146,46 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 		setDropLineIndex(null);
 	};
 
+	const handleMenuOpen = (
+		event: React.MouseEvent<HTMLElement>,
+		index: number,
+	) => {
+		setMenuAnchorEl(event.currentTarget);
+		setActiveMenuIndex(index);
+	};
+
+	const handleMenuClose = () => {
+		setMenuAnchorEl(null);
+	};
+
+	const handleMoveUp = () => {
+		if (activeMenuIndex === null || activeMenuIndex <= 0) return;
+		const newSources = [...sources];
+		const temp = newSources[activeMenuIndex];
+		newSources[activeMenuIndex] = newSources[activeMenuIndex - 1];
+		newSources[activeMenuIndex - 1] = temp;
+		setSources(newSources);
+		handleMenuClose();
+	};
+
+	const handleMoveDown = () => {
+		if (activeMenuIndex === null || activeMenuIndex >= sources.length - 1)
+			return;
+		const newSources = [...sources];
+		const temp = newSources[activeMenuIndex];
+		newSources[activeMenuIndex] = newSources[activeMenuIndex + 1];
+		newSources[activeMenuIndex + 1] = temp;
+		setSources(newSources);
+		handleMenuClose();
+	};
+
+	const handleDeleteFromMenu = () => {
+		if (activeMenuIndex !== null) {
+			handleDelete(activeMenuIndex);
+		}
+		handleMenuClose();
+	};
+
 	return (
 		<Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
 			<DialogTitle sx={{ fontWeight: "bold" }}>歌词源设置</DialogTitle>
@@ -147,7 +196,6 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 
 				<List
 					sx={{
-						bgcolor: "background.paper",
 						borderRadius: 1,
 						border: "1px solid",
 						borderColor: "divider",
@@ -155,7 +203,6 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 					}}
 				>
 					{sources.map((item, index) => {
-						const isBuiltin = item.source.type.startsWith("builtin");
 						const status = searchStatuses[item.source.id] || "idle";
 						const statusInfo = STATUS_CONFIG[status];
 
@@ -205,6 +252,7 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 										display: "flex",
 										alignItems: "center",
 										color: "text.disabled",
+										ml: 0.5,
 										mr: 2,
 									}}
 								>
@@ -277,6 +325,7 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 										alignItems: "center",
 										position: "absolute",
 										right: 8,
+										gap: 0.5,
 									}}
 								>
 									<Switch
@@ -285,22 +334,83 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 										onChange={() => handleToggle(index)}
 										color="primary"
 									/>
-									{!isBuiltin && (
-										<Tooltip title="删除">
-											<IconButton
-												size="small"
-												color="error"
-												onClick={() => handleDelete(index)}
-											>
-												<DeleteIcon fontSize="small" />
-											</IconButton>
-										</Tooltip>
-									)}
+									<IconButton
+										size="small"
+										onClick={(e) => handleMenuOpen(e, index)}
+									>
+										<MoreVertIcon fontSize="small" />
+									</IconButton>
 								</Box>
 							</ListItem>
 						);
 					})}
 				</List>
+
+				<Menu
+					anchorEl={menuAnchorEl}
+					open={Boolean(menuAnchorEl)}
+					onClose={handleMenuClose}
+					anchorOrigin={{
+						vertical: "bottom",
+						horizontal: "right",
+					}}
+					transformOrigin={{
+						vertical: "top",
+						horizontal: "right",
+					}}
+				>
+					<MenuItem
+						onClick={handleMoveUp}
+						disabled={activeMenuIndex === 0 || activeMenuIndex === null}
+					>
+						<ListItemIcon>
+							<ArrowUpwardIcon fontSize="small" />
+						</ListItemIcon>
+						<ListItemText>上移</ListItemText>
+					</MenuItem>
+					<MenuItem
+						onClick={handleMoveDown}
+						disabled={
+							activeMenuIndex === null || activeMenuIndex === sources.length - 1
+						}
+					>
+						<ListItemIcon>
+							<ArrowDownwardIcon fontSize="small" />
+						</ListItemIcon>
+						<ListItemText>下移</ListItemText>
+					</MenuItem>
+
+					{activeMenuIndex !== null &&
+						(() => {
+							const targetSource = sources[activeMenuIndex];
+							const isBuiltin =
+								targetSource?.source.type.startsWith("builtin") ?? false;
+
+							const deleteMenuItem = (
+								<MenuItem
+									onClick={handleDeleteFromMenu}
+									disabled={isBuiltin}
+									sx={{ color: isBuiltin ? "text.disabled" : "error.main" }}
+								>
+									<ListItemIcon>
+										<DeleteIcon
+											fontSize="small"
+											color={isBuiltin ? "disabled" : "error"}
+										/>
+									</ListItemIcon>
+									<ListItemText>删除</ListItemText>
+								</MenuItem>
+							);
+
+							return isBuiltin ? (
+								<Tooltip title="不能删除内置源" placement="left">
+									<span>{deleteMenuItem}</span>
+								</Tooltip>
+							) : (
+								deleteMenuItem
+							);
+						})()}
+				</Menu>
 
 				<Box sx={{ mt: 4 }}>
 					<Typography variant="subtitle2" sx={{ mb: 1 }}>
