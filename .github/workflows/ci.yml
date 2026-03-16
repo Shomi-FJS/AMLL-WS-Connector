@@ -16,7 +16,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: 安装依赖
-        run: bun install --production
+        run: bun install
 
       - name: 检查格式
         run: bun lint
