@@ -11,16 +11,18 @@ import LinkIcon from "@mui/icons-material/Link";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import WifiIcon from "@mui/icons-material/Wifi";
 import {
+	Alert,
 	Box,
 	Button,
-	Chip,
+	CircularProgress,
+	Collapse,
 	Switch,
 	TextField,
 	Typography,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Provider, useAtom } from "jotai";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AmllWsClient } from "./components/headless/AmllWsClient";
 import { InfLinkBridge } from "./components/headless/InfLinkBridge";
 import { LyricSync } from "./components/headless/LyricSync";
@@ -40,17 +42,14 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
 	connected: "已连接",
 	connecting: "连接中...",
 	disconnected: "未连接",
-	error: "连接错误",
+	error: "错误",
 };
 
-const STATUS_COLOR: Record<
-	ConnectionStatus,
-	"success" | "warning" | "default" | "error"
-> = {
-	connected: "success",
-	connecting: "warning",
-	disconnected: "default",
-	error: "error",
+const STATUS_TEXT_COLOR: Record<ConnectionStatus, string> = {
+	connected: "success.main",
+	connecting: "info.main",
+	disconnected: "text.secondary",
+	error: "error.main",
 };
 
 const amllEmotionCache = createCache({
@@ -102,7 +101,8 @@ function Main() {
 	const [wsUrl, setWsUrl] = useAtom(wsUrlAtom);
 	const [autoConnect, setAutoConnect] = useAtom(autoConnectAtom);
 	const [status, setStatus] = useAtom(connectionStatusAtom);
-	const [, setError] = useAtom(connectionErrorAtom);
+	const [error, setError] = useAtom(connectionErrorAtom);
+	const [displayError, setDisplayError] = useState(error);
 	const [debugOpen, setDebugOpen] = useState(false);
 	const [sourcesDialogOpen, setSourcesDialogOpen] = useState(false);
 
@@ -119,23 +119,41 @@ function Main() {
 		}
 	}
 
+	useEffect(() => {
+		if (error) {
+			setDisplayError(error);
+		}
+	}, [error]);
+
 	return (
 		<Box sx={{ pb: 4, pt: 1 }}>
 			<Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
 				AMLL WS Connector 设置
 			</Typography>
 
+			<Collapse in={!!error}>
+				<Alert
+					severity="error"
+					onClose={() => setError("")}
+					sx={{ mb: 3, borderRadius: 2 }}
+				>
+					{displayError}
+				</Alert>
+			</Collapse>
+
 			<SettingItem
 				icon={<WifiIcon />}
 				title="连接状态"
-				description="当前与 AMLL Player 的 WebSocket 连接状态"
+				description={
+					<Box
+						component="span"
+						sx={{ color: STATUS_TEXT_COLOR[status], fontWeight: 500 }}
+					>
+						{STATUS_LABEL[status]}
+					</Box>
+				}
 				action={
-					<Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-						<Chip
-							label={STATUS_LABEL[status]}
-							color={STATUS_COLOR[status]}
-							size="small"
-						/>
+					<Box sx={{ position: "relative", display: "inline-flex" }}>
 						<Button
 							variant="outlined"
 							size="small"
@@ -145,6 +163,20 @@ function Main() {
 						>
 							{isConnected || isConnecting ? "断开" : "连接"}
 						</Button>
+
+						{isConnecting && (
+							<CircularProgress
+								size={24}
+								sx={{
+									color: "primary.main",
+									position: "absolute",
+									top: "50%",
+									left: "50%",
+									marginTop: "-12px",
+									marginLeft: "-12px",
+								}}
+							/>
+						)}
 					</Box>
 				}
 			/>

@@ -130,7 +130,7 @@ export function AmllWsClient() {
 			ws.onerror = () => {
 				if (wsRef.current === ws) {
 					setStatus("error");
-					setError("无法连接到 AMLL 服务器，请检查地址是否正确");
+					setError("无法连接到 AMLL Player，请检查地址是否正确");
 					wsRef.current = null;
 				}
 			};
