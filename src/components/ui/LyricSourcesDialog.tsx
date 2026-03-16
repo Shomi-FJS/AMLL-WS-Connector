@@ -191,7 +191,7 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 			<DialogTitle sx={{ fontWeight: "bold" }}>歌词源设置</DialogTitle>
 			<DialogContent dividers>
 				<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-					越靠前的歌词源优先级越高，命中高优先级的歌词源后则不再寻找低优先级的歌词源
+					越靠前的歌词源优先级越高，会获取全部源的歌词然后显示最高优先级的歌词
 				</Typography>
 
 				<List
