@@ -11,7 +11,7 @@
 		"lint": "bun biome check .",
 		"format": "bun biome format . --write",
 		"cs:add": "bun changeset add",
-		"cs:version": "bun changeset version"
+		"cs:version": "bun changeset version && bun scripts/sync-versions.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.6",
