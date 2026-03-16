@@ -14,6 +14,10 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 	private currentMusicId: string | number | null = null;
 	private statuses: Record<string, LyricSearchStatus> = {};
 
+	private isDebouncing = false;
+	private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	private DEBOUNCE_DELAY_MS = 1000;
+
 	public async init(): Promise<void> {
 		await Promise.all(this.adapters.map((a) => a.init()));
 	}
@@ -52,6 +56,14 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 		}
 		this.dispatch("statuschange", { ...this.statuses });
 
+		this.clearDebounceTimer();
+
+		this.isDebouncing = true;
+		this.debounceTimer = setTimeout(() => {
+			this.clearDebounceTimer();
+			this.evaluateAndDispatch();
+		}, this.DEBOUNCE_DELAY_MS);
+
 		for (const adapter of this.adapters) {
 			adapter.fetchLyric(songInfo);
 		}
@@ -77,6 +89,7 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 	private evaluateAndDispatch() {
 		let hasFoundHigherPriority = false;
 		let finalLyric: AmllLyricContent | null = null;
+		let isWaitingForHigherPriority = false;
 
 		for (const adapter of this.adapters) {
 			if (hasFoundHigherPriority) {
@@ -86,17 +99,37 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 				continue;
 			}
 
-			const cachedLyric = this.caches.get(adapter.id);
-			if (cachedLyric) {
+			const status = this.statuses[adapter.id];
+
+			if (status === "found") {
 				hasFoundHigherPriority = true;
-				finalLyric = cachedLyric;
+				finalLyric = this.caches.get(adapter.id) || null;
+			} else if (status === "searching") {
+				if (this.isDebouncing) {
+					isWaitingForHigherPriority = true;
+					break;
+				}
 			}
 		}
 
 		this.dispatch("statuschange", { ...this.statuses });
 
-		if (finalLyric) {
-			this.dispatch("update", finalLyric);
+		if (isWaitingForHigherPriority) {
+			return;
+		}
+
+		this.dispatch("update", finalLyric);
+
+		if (hasFoundHigherPriority && this.isDebouncing) {
+			this.clearDebounceTimer();
+		}
+	}
+
+	private clearDebounceTimer() {
+		this.isDebouncing = false;
+		if (this.debounceTimer) {
+			clearTimeout(this.debounceTimer);
+			this.debounceTimer = null;
 		}
 	}
 }
