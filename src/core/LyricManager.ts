@@ -2,6 +2,7 @@ import type {
 	BaseLyricAdapter,
 	LyricAdapterEventMap,
 } from "@/adapters/BaseLyricAdapter";
+import type { LyricSearchStatus } from "@/store";
 import type { SongInfo } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
@@ -11,6 +12,7 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 	private caches: Map<string, AmllLyricContent | null> = new Map();
 
 	private currentMusicId: string | number | null = null;
+	private statuses: Record<string, LyricSearchStatus> = {};
 
 	public async init(): Promise<void> {
 		await Promise.all(this.adapters.map((a) => a.init()));
@@ -44,6 +46,12 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 			this.dispatch("update", null);
 		}
 
+		this.statuses = {};
+		for (const adapter of this.adapters) {
+			this.statuses[adapter.id] = "searching";
+		}
+		this.dispatch("statuschange", { ...this.statuses });
+
 		for (const adapter of this.adapters) {
 			adapter.fetchLyric(songInfo);
 		}
@@ -56,17 +64,39 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 		const lyric = event.detail;
 
 		this.caches.set(adapter.id, lyric);
+
+		if (lyric) {
+			this.statuses[adapter.id] = "found";
+		} else {
+			this.statuses[adapter.id] = "not_found";
+		}
+
 		this.evaluateAndDispatch();
 	};
 
 	private evaluateAndDispatch() {
-		for (const adapter of this.adapters) {
-			const cachedLyric = this.caches.get(adapter.id);
+		let hasFoundHigherPriority = false;
+		let finalLyric: AmllLyricContent | null = null;
 
-			if (cachedLyric) {
-				this.dispatch("update", cachedLyric);
-				return;
+		for (const adapter of this.adapters) {
+			if (hasFoundHigherPriority) {
+				if (this.statuses[adapter.id] === "searching") {
+					this.statuses[adapter.id] = "skipped";
+				}
+				continue;
 			}
+
+			const cachedLyric = this.caches.get(adapter.id);
+			if (cachedLyric) {
+				hasFoundHigherPriority = true;
+				finalLyric = cachedLyric;
+			}
+		}
+
+		this.dispatch("statuschange", { ...this.statuses });
+
+		if (finalLyric) {
+			this.dispatch("update", finalLyric);
 		}
 	}
 }

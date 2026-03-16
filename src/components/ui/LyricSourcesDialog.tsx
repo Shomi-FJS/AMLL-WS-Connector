@@ -4,6 +4,7 @@ import {
 	Alert,
 	Box,
 	Button,
+	CircularProgress,
 	Dialog,
 	DialogActions,
 	DialogContent,
@@ -19,7 +20,11 @@ import {
 } from "@mui/material";
 import { useAtom } from "jotai";
 import { useState } from "react";
-import { lyricSourcesConfigAtom } from "@/store";
+import {
+	type LyricSearchStatus,
+	lyricSearchStatusAtom,
+	lyricSourcesConfigAtom,
+} from "@/store";
 import { parseSourceString } from "@/utils/source";
 
 export interface LyricSourcesDialogProps {
@@ -27,8 +32,20 @@ export interface LyricSourcesDialogProps {
 	onClose: () => void;
 }
 
+const STATUS_CONFIG: Record<
+	LyricSearchStatus,
+	{ text: string; color: string }
+> = {
+	idle: { text: "等待中", color: "text.secondary" },
+	searching: { text: "正在搜索...", color: "info.main" },
+	found: { text: "已找到", color: "success.main" },
+	not_found: { text: "未找到", color: "text.secondary" },
+	skipped: { text: "已跳过", color: "text.secondary" },
+};
+
 export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 	const [sources, setSources] = useAtom(lyricSourcesConfigAtom);
+	const [searchStatuses] = useAtom(lyricSearchStatusAtom);
 	const [newSourceStr, setNewSourceStr] = useState("");
 	const [errorMsg, setErrorMsg] = useState("");
 
@@ -139,6 +156,8 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 				>
 					{sources.map((item, index) => {
 						const isBuiltin = item.source.type.startsWith("builtin");
+						const status = searchStatuses[item.source.id] || "idle";
+						const statusInfo = STATUS_CONFIG[status];
 
 						const showTopLine = dropLineIndex === index;
 						const showBottomLine =
@@ -205,14 +224,50 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 										</Typography>
 									}
 									secondary={
-										<Typography
-											variant="caption"
-											color={item.enabled ? "text.secondary" : "text.disabled"}
-											noWrap
+										<Box
+											sx={{
+												display: "flex",
+												flexDirection: "column",
+												mt: 0.5,
+												gap: 0.5,
+											}}
 										>
-											格式: {item.source.format.toUpperCase()}
-											{item.source.desc}
-										</Typography>
+											{item.source.desc && (
+												<Typography
+													variant="caption"
+													color="text.secondary"
+													noWrap
+												>
+													{item.source.desc}
+												</Typography>
+											)}
+
+											<Box
+												sx={{ display: "flex", alignItems: "center", gap: 1 }}
+											>
+												<Typography
+													variant="caption"
+													sx={{
+														color: item.enabled
+															? statusInfo.color
+															: "text.disabled",
+														display: "flex",
+														alignItems: "center",
+														gap: 0.5,
+														fontWeight: status === "found" ? "bold" : "normal",
+													}}
+												>
+													{item.enabled && status === "searching" && (
+														<CircularProgress
+															size={10}
+															color="inherit"
+															thickness={5}
+														/>
+													)}
+													{item.enabled ? statusInfo.text : "已禁用"}
+												</Typography>
+											</Box>
+										</Box>
 									}
 								/>
 

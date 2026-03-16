@@ -25,6 +25,13 @@ export interface ConfiguredLyricSource {
 	enabled: boolean;
 }
 
+export type LyricSearchStatus =
+	| "idle"
+	| "searching"
+	| "found"
+	| "not_found"
+	| "skipped";
+
 /** WebSocket 服务器地址 */
 export const wsUrlAtom = atomWithStorage(
 	"amll-ws-connector:wsUrl",
@@ -102,4 +109,13 @@ const defaultSources: ConfiguredLyricSource[] = [
 export const lyricSourcesConfigAtom = atomWithStorage<ConfiguredLyricSource[]>(
 	"amll-ws-connector:lyricSources",
 	defaultSources,
+);
+
+/**
+ * 每个歌词源当前的搜索状态
+ *
+ * Key 为歌词源的 id，Value 为搜索状态
+ */
+export const lyricSearchStatusAtom = atom<Record<string, LyricSearchStatus>>(
+	{},
 );

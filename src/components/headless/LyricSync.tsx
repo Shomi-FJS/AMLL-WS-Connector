@@ -4,11 +4,18 @@ import { ExternalLyricAdapter } from "@/adapters/ExternalLyricAdapter";
 import { V2LyricAdapter } from "@/adapters/v2";
 import { V3LyricAdapter } from "@/adapters/v3";
 import { LyricManager } from "@/core/LyricManager";
-import { lyricAtom, lyricSourcesConfigAtom, songInfoAtom } from "@/store";
+import {
+	type LyricSearchStatus,
+	lyricAtom,
+	lyricSearchStatusAtom,
+	lyricSourcesConfigAtom,
+	songInfoAtom,
+} from "@/store";
 import type { AmllLyricContent } from "@/types/ws";
 
 export function LyricSync() {
 	const setLyric = useSetAtom(lyricAtom);
+	const setSearchStatuses = useSetAtom(lyricSearchStatusAtom);
 	const songInfo = useAtomValue(songInfoAtom);
 	const songInfoRef = useRef(songInfo);
 	const sourcesConfig = useAtomValue(lyricSourcesConfigAtom);
@@ -25,13 +32,22 @@ export function LyricSync() {
 		const handleLyricUpdate = (event: CustomEvent<AmllLyricContent | null>) =>
 			setLyric(event.detail);
 
+		const handleStatusChange = (
+			event: CustomEvent<Record<string, LyricSearchStatus>>,
+		) => setSearchStatuses(event.detail);
+
 		managerRef.current.addEventListener("update", handleLyricUpdate);
+		managerRef.current.addEventListener("statuschange", handleStatusChange);
 
 		return () => {
 			managerRef.current?.removeEventListener("update", handleLyricUpdate);
+			managerRef.current?.removeEventListener(
+				"statuschange",
+				handleStatusChange,
+			);
 			managerRef.current?.destroy();
 		};
-	}, [setLyric]);
+	}, [setLyric, setSearchStatuses]);
 
 	useEffect(() => {
 		if (!managerRef.current) return;
