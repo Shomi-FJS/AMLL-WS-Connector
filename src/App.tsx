@@ -3,7 +3,10 @@
  * 插件设置界面根组件
  */
 
+import createCache from "@emotion/cache";
+import { CacheProvider } from "@emotion/react";
 import BugReportIcon from "@mui/icons-material/BugReport";
+import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import LinkIcon from "@mui/icons-material/Link";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import WifiIcon from "@mui/icons-material/Wifi";
@@ -22,6 +25,7 @@ import { AmllWsClient } from "./components/headless/AmllWsClient";
 import { InfLinkBridge } from "./components/headless/InfLinkBridge";
 import { LyricSync } from "./components/headless/LyricSync";
 import { DebugDialog } from "./components/ui/DebugDialog";
+import { LyricSourcesDialog } from "./components/ui/LyricSourcesDialog";
 import { SettingItem } from "./components/ui/SettingItem";
 import { useNcmTheme } from "./hooks/useNcmTheme";
 import {
@@ -49,6 +53,10 @@ const STATUS_COLOR: Record<
 	error: "error",
 };
 
+const amllEmotionCache = createCache({
+	key: "amll-ws-connector",
+});
+
 export default function App() {
 	const ncmThemeMode = useNcmTheme();
 
@@ -57,6 +65,9 @@ export default function App() {
 			createTheme({
 				palette: {
 					mode: ncmThemeMode,
+					primary: {
+						main: "#F25774",
+					},
 				},
 				typography: {
 					fontFamily: [
@@ -74,14 +85,16 @@ export default function App() {
 	);
 
 	return (
-		<ThemeProvider theme={theme}>
-			<Provider>
-				<InfLinkBridge />
-				<AmllWsClient />
-				<LyricSync />
-				<Main />
-			</Provider>
-		</ThemeProvider>
+		<CacheProvider value={amllEmotionCache}>
+			<ThemeProvider theme={theme}>
+				<Provider>
+					<InfLinkBridge />
+					<AmllWsClient />
+					<LyricSync />
+					<Main />
+				</Provider>
+			</ThemeProvider>
+		</CacheProvider>
 	);
 }
 
@@ -91,6 +104,7 @@ function Main() {
 	const [status, setStatus] = useAtom(connectionStatusAtom);
 	const [, setError] = useAtom(connectionErrorAtom);
 	const [debugOpen, setDebugOpen] = useState(false);
+	const [sourcesDialogOpen, setSourcesDialogOpen] = useState(false);
 
 	const isConnected = status === "connected";
 	const isConnecting = status === "connecting";
@@ -164,6 +178,21 @@ function Main() {
 			/>
 
 			<SettingItem
+				icon={<FormatListNumberedIcon />}
+				title="歌词源"
+				description="管理获取歌词的来源"
+				action={
+					<Button
+						variant="outlined"
+						size="small"
+						onClick={() => setSourcesDialogOpen(true)}
+					>
+						配置
+					</Button>
+				}
+			/>
+
+			<SettingItem
 				icon={<BugReportIcon />}
 				title="调试面板"
 				description="查看获取到的歌曲状态"
@@ -179,6 +208,10 @@ function Main() {
 			/>
 
 			<DebugDialog open={debugOpen} onClose={() => setDebugOpen(false)} />
+			<LyricSourcesDialog
+				open={sourcesDialogOpen}
+				onClose={() => setSourcesDialogOpen(false)}
+			/>
 		</Box>
 	);
 }

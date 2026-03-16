@@ -13,6 +13,17 @@ import type {
 	VolumeInfo,
 } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
+import {
+	LYRIC_SOURCE_UUID_BUILTIN_AMLL_TTML_DB,
+	LYRIC_SOURCE_UUID_BUILTIN_NCM,
+	LyricFormat,
+	type LyricSource,
+} from "@/utils/source";
+
+export interface ConfiguredLyricSource {
+	source: LyricSource;
+	enabled: boolean;
+}
 
 /** WebSocket 服务器地址 */
 export const wsUrlAtom = atomWithStorage(
@@ -58,3 +69,37 @@ export const volumeInfoAtom = atom<VolumeInfo | null>(null);
 
 /** 当前的歌词信息 */
 export const lyricAtom = atom<AmllLyricContent | null>(null);
+
+/**
+ * 默认的歌词源配置
+ */
+const defaultSources: ConfiguredLyricSource[] = [
+	{
+		enabled: true,
+		source: {
+			type: "builtin:amll-ttml-db",
+			id: LYRIC_SOURCE_UUID_BUILTIN_AMLL_TTML_DB,
+			url: "https://raw.githubusercontent.com/amll-dev/amll-ttml-db/main/ncm-lyrics/[NCM_ID].ttml",
+			format: LyricFormat.TTML,
+			name: "AMLL TTML DB",
+		},
+	},
+	{
+		enabled: true,
+		source: {
+			type: "builtin:ncm",
+			id: LYRIC_SOURCE_UUID_BUILTIN_NCM,
+			url: "",
+			format: LyricFormat.YRC,
+			name: "网易云音乐歌词源",
+		},
+	},
+];
+
+/**
+ * 歌词源配置
+ */
+export const lyricSourcesConfigAtom = atomWithStorage<ConfiguredLyricSource[]>(
+	"amll-ws-connector:lyricSources",
+	defaultSources,
+);
