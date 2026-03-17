@@ -206,7 +206,7 @@ export namespace v2 {
 		 * @param type 事件类型，不区分大小写 (如 "lrctimeupdate", "lrcload")
 		 * @param options 随事件广播的数据载荷
 		 */
-		Ge(element: unknown, type: string, options: unknown): this;
+		Ge(element: string | Node, type: string, options: unknown): this;
 	}
 
 	/**
@@ -244,6 +244,22 @@ export namespace v2 {
 		/** 原函数的返回值。在 after 拦截器中可以读取或修改此值 */
 		value?: TReturn;
 	}
+
+	/**
+	 * AOP 拦截器函数签名
+	 */
+	export type NEJAopInterceptor<
+		Args extends unknown[] = unknown[],
+		Return = unknown,
+	> = (event: NEJAopEvent<Args, Return>) => void;
+
+	/**
+	 * AOP 拦截的目标函数签名
+	 */
+	export type NEJAopTarget<This, Args extends unknown[], Return> = (
+		this: This,
+		...args: Args
+	) => Return;
 }
 
 declare global {
@@ -262,16 +278,22 @@ declare global {
 		 * NEJ AOP 增强拦截器
 		 *
 		 * 用于在不修改原函数的基础上，无侵入地插入前置或后置逻辑
+		 *
+		 * 运行时行为：
+		 * 1. 返回一个全新的包装函数，原函数上的静态属性不会被继承
+		 * 2. 包装函数执行时，会保留当时的 `this` 上下文并透传给原函数
+		 * 3. `before` 拦截器可以修改 `event.args` 或设置 `event.stopped = true` 并提供 `event.value`
+		 * 4. `after` 拦截器可以读取或修改原函数产生的 `event.value`
 		 * @see https://github.com/apoint123/nej/blob/39306b9a2c0f301bbb758e8e36f29f809137867b/src/base/global.js#L288-L319
 		 * @note 原名 `_$aop`
 		 * @param before 前置拦截器，在原函数之前执行
 		 * @param after 后置拦截器，在原函数之后执行
 		 * @returns 返回一个增强后的包装函数，签名与原函数完全一致
 		 */
-		// biome-ignore lint/suspicious/noExplicitAny: 泛型约束，使用 any 才能正确推断函数类型
-		e9<T extends (...args: any[]) => any>(
-			before?: (event: v2.NEJAopEvent<Parameters<T>, ReturnType<T>>) => void,
-			after?: (event: v2.NEJAopEvent<Parameters<T>, ReturnType<T>>) => void,
-		): T;
+		e9<This, Args extends unknown[], Return>(
+			this: v2.NEJAopTarget<This, Args, Return>,
+			before?: v2.NEJAopInterceptor<Args, Return>,
+			after?: v2.NEJAopInterceptor<Args, Return>,
+		): v2.NEJAopTarget<This, Args, Return>;
 	}
 }
