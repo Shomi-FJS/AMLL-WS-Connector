@@ -1,12 +1,11 @@
-import type { v3 } from "@/types/ncm";
-import type { AmllLyricContent } from "@/types/ws";
+import { type LrcLine, parseLrc } from "@/core/parsers/lrcParser";
 import {
 	buildAmllLyricLines,
-	type LrcLine,
 	mergeSubLyrics,
-	parseLrc,
-	parseYrc,
-} from "@/utils/lyricParser";
+} from "@/core/parsers/lyricBuilder";
+import { parseYrc } from "@/core/parsers/yrcParser";
+import type { v3 } from "@/types/ncm";
+import type { AmllLyricContent } from "@/types/ws";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import {
 	findModule,
@@ -142,7 +141,7 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 		}
 
 		const rawLrc: LrcLine[] = lines.map((l) => ({
-			time: l.time,
+			time: l.time * 1000,
 			text: l.lyric,
 		}));
 		const tTexts = rawState.tlyricLines?.map((l) => l.lyric) ?? [];

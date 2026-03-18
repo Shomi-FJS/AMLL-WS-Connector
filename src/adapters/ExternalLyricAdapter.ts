@@ -1,6 +1,8 @@
+import { parseLrc } from "@/core/parsers/lrcParser";
+import { buildAmllLyricLines } from "@/core/parsers/lyricBuilder";
+import { parseYrc } from "@/core/parsers/yrcParser";
 import type { SongInfo } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
-import { buildAmllLyricLines, parseLrc, parseYrc } from "@/utils/lyricParser";
 import { LyricFormat, type LyricSource } from "@/utils/source";
 import { BaseLyricAdapter } from "./BaseLyricAdapter";
 

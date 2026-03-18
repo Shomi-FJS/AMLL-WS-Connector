@@ -1,12 +1,12 @@
 import { feature } from "bun:bundle";
-import type { v2 } from "@/types/ncm";
-import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
+import type { LrcLine } from "@/core/parsers/lrcParser";
 import {
 	buildAmllLyricLines,
-	type LrcLine,
 	mergeSubLyrics,
-	parseYrc,
-} from "@/utils/lyricParser";
+} from "@/core/parsers/lyricBuilder";
+import { parseYrc } from "@/core/parsers/yrcParser";
+import type { v2 } from "@/types/ncm";
+import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
 
@@ -173,7 +173,7 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 			lyricObj.lrc.lines.length > 0
 		) {
 			const rawLrc: LrcLine[] = lyricObj.lrc.lines.map((l) => ({
-				time: l.time,
+				time: l.time * 1000,
 				text: l.lyric,
 			}));
 			const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
