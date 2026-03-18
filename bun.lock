@@ -13,6 +13,7 @@
         "jotai": "^2.18.1",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
+        "ttml-processor": "^0.1.2",
         "uuid": "^13.0.0",
       },
       "devDependencies": {
@@ -396,6 +397,8 @@
     "term-size": ["term-size@2.2.1", "", {}, "sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg=="],
 
     "to-regex-range": ["to-regex-range@5.0.1", "", { "dependencies": { "is-number": "^7.0.0" } }, "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="],
+
+    "ttml-processor": ["ttml-processor@0.1.2", "", {}, "sha512-OQKwe3L0zpsljXuOHWVe6KoArdItV/cstuOT75dyiAvZrEeocuaFap97CgAvTJ5uGt5IHAyBlM0tpeMVxRXg8w=="],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

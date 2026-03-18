@@ -1,5 +1,6 @@
 import { parseLrc } from "@/core/parsers/lrcParser";
 import { buildAmllLyricLines } from "@/core/parsers/lyricBuilder";
+import { parseTtml } from "@/core/parsers/ttmlParser";
 import { parseYrc } from "@/core/parsers/yrcParser";
 import type { SongInfo } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
@@ -66,7 +67,7 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 
 		switch (format) {
 			case LyricFormat.TTML:
-				return { format: "ttml", data: text };
+				return parseTtml(text);
 
 			case LyricFormat.LRC: {
 				const rawLrc = parseLrc(text);

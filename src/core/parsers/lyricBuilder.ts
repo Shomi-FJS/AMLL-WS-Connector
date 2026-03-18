@@ -23,7 +23,7 @@ export function buildAmllLyricLines(
 	for (let i = 0; i < lrcLines.length; i++) {
 		const current = lrcLines[i];
 		const text = current.text.trim();
-		const startTime = Math.max(0, current.time);
+		const startTime = Math.max(0, Math.round(current.time));
 
 		if (!text) {
 			if (parsedLines.length > 0) {
@@ -36,7 +36,10 @@ export function buildAmllLyricLines(
 		}
 
 		const next = lrcLines[i + 1];
-		const defaultEndTime = next ? Math.max(0, next.time) : startTime + 100000;
+
+		const defaultEndTime = next
+			? Math.max(0, Math.round(next.time))
+			: startTime + 100000;
 		const safeEndTime = Math.max(startTime, defaultEndTime);
 
 		parsedLines.push({
