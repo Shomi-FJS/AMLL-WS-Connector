@@ -56,7 +56,7 @@ export const connectionStatusAtom = atom<ConnectionStatus>("disconnected");
 /** 最近一次连接错误信息 */
 export const connectionErrorAtom = atom<string>("");
 
-export type InfLinkStatus = "waiting" | "ready" | "error";
+export type InfLinkStatus = "waiting" | "ready" | "error" | "outdated";
 
 /** InfLink-rs API 的状态 */
 export const infLinkStatusAtom = atom<InfLinkStatus>("waiting");

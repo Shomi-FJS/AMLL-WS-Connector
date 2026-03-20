@@ -29,6 +29,20 @@ import type {
  */
 export const AudioDataBus = new EventTarget();
 
+function isVersionOutdated(version?: string) {
+	if (!version) return true;
+	const parts = version.split(".").map(Number);
+	const target = [3, 2, 11]; // 音频数据可用的那个版本
+
+	for (let i = 0; i < 3; i++) {
+		const p = parts[i] || 0;
+		const t = target[i] || 0;
+		if (p < t) return true;
+		if (p > t) return false;
+	}
+	return false;
+}
+
 export function InfLinkBridge() {
 	const setSongInfo = useSetAtom(songInfoAtom);
 	const setPlaybackStatus = useSetAtom(playbackStatusAtom);
@@ -44,7 +58,12 @@ export function InfLinkBridge() {
 		const MAX_POLL_ATTEMPTS = 20;
 
 		function attach(resolvedApi: NonNullable<typeof api>) {
-			setInfLinkStatus("ready");
+			if (isVersionOutdated(resolvedApi.version)) {
+				setInfLinkStatus("outdated");
+			} else {
+				setInfLinkStatus("ready");
+			}
+
 			setSongInfo(resolvedApi.getCurrentSong());
 			setPlaybackStatus(resolvedApi.getPlaybackStatus());
 			setTimelineInfo(resolvedApi.getTimeline());

@@ -146,6 +146,31 @@ function Main() {
 		}
 	};
 
+	const alertConfig = {
+		waiting: {
+			severity: "info" as const,
+			icon: <CircularProgress size={20} color="inherit" />,
+			message: "正在等待 InfLink-rs 插件加载...",
+		},
+		error: {
+			severity: "error" as const,
+			icon: undefined,
+			message:
+				"等待 InfLink-rs 插件超时，请确保你已经安装了此插件。本插件需要 InfLink-rs 插件才能运行",
+		},
+		outdated: {
+			severity: "warning" as const,
+			icon: undefined,
+			message: "InfLink-rs 插件版本过低，建议更新至 3.2.11 或以上版本",
+		},
+		ready: {
+			severity: "success" as const,
+			icon: undefined,
+			message: "InfLink-rs 已加载",
+		},
+	};
+	const currentAlert = alertConfig[infLinkStatus];
+
 	return (
 		<Box sx={{ pb: 4, pt: 1 }}>
 			<Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
@@ -154,17 +179,11 @@ function Main() {
 
 			<Collapse in={infLinkStatus !== "ready"}>
 				<Alert
-					severity={infLinkStatus === "error" ? "error" : "info"}
-					icon={
-						infLinkStatus === "waiting" ? (
-							<CircularProgress size={20} color="inherit" />
-						) : undefined
-					}
+					severity={currentAlert.severity}
+					icon={currentAlert.icon}
 					sx={{ mb: 3, borderRadius: 2, alignItems: "center" }}
 				>
-					{infLinkStatus === "error"
-						? "等待 InfLink-rs 插件超时，请确保你已经安装了此插件。本插件需要 InfLink-rs 插件才能运行"
-						: "正在等待 InfLink-rs 插件加载..."}
+					{currentAlert.message}
 				</Alert>
 			</Collapse>
 
