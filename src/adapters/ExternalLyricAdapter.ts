@@ -1,5 +1,7 @@
 import { parseLrc } from "@/core/parsers/lrcParser";
 import { buildAmllLyricLines } from "@/core/parsers/lyricBuilder";
+import { parseLys } from "@/core/parsers/lysParser";
+import { parseQrc } from "@/core/parsers/qrcParser";
 import { parseTtml } from "@/core/parsers/ttmlParser";
 import { parseYrc } from "@/core/parsers/yrcParser";
 import type { SongInfo } from "@/types/inflink";
@@ -89,11 +91,25 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 				};
 			}
 
-			case LyricFormat.QRC:
-			case LyricFormat.LYS:
-				// TODO: 支持这些格式
-				console.warn(`[ExternalAdapter] 暂不支持解析 ${format} 格式的歌词`);
-				return null;
+			case LyricFormat.LYS: {
+				const lysLines = parseLys(text);
+				if (lysLines.length === 0) return null;
+
+				return {
+					format: "structured",
+					lines: lysLines,
+				};
+			}
+
+			case LyricFormat.QRC: {
+				const qrcLines = parseQrc(text);
+				if (qrcLines.length === 0) return null;
+
+				return {
+					format: "structured",
+					lines: qrcLines,
+				};
+			}
 
 			default:
 				console.warn(`[ExternalAdapter] 未知的歌词格式: ${format}`);
