@@ -23,7 +23,7 @@ import {
 	Typography,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { Provider, useAtom } from "jotai";
+import { Provider, useAtom, useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { AmllWsClient } from "./components/headless/AmllWsClient";
 import { InfLinkBridge } from "./components/headless/InfLinkBridge";
@@ -37,6 +37,7 @@ import {
 	type ConnectionStatus,
 	connectionErrorAtom,
 	connectionStatusAtom,
+	infLinkStatusAtom,
 	timelineOffsetAtom,
 	wsUrlAtom,
 } from "./store";
@@ -111,6 +112,8 @@ function Main() {
 	const [timelineOffset, setTimelineOffset] = useAtom(timelineOffsetAtom);
 	const [localOffset, setLocalOffset] = useState(timelineOffset.toString());
 
+	const infLinkStatus = useAtomValue(infLinkStatusAtom);
+
 	const isConnected = status === "connected";
 	const isConnecting = status === "connecting";
 
@@ -148,6 +151,22 @@ function Main() {
 			<Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
 				AMLL WS Connector 设置
 			</Typography>
+
+			<Collapse in={infLinkStatus !== "ready"}>
+				<Alert
+					severity={infLinkStatus === "error" ? "error" : "info"}
+					icon={
+						infLinkStatus === "waiting" ? (
+							<CircularProgress size={20} color="inherit" />
+						) : undefined
+					}
+					sx={{ mb: 3, borderRadius: 2, alignItems: "center" }}
+				>
+					{infLinkStatus === "error"
+						? "等待 InfLink-rs 插件超时，请确保你已经安装了此插件。本插件需要 InfLink-rs 插件才能运行"
+						: "正在等待 InfLink-rs 插件加载..."}
+				</Alert>
+			</Collapse>
 
 			<Collapse in={!!error}>
 				<Alert

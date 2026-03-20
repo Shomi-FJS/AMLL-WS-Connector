@@ -6,7 +6,7 @@
 import { useSetAtom } from "jotai";
 import { useEffect } from "react";
 import {
-	infLinkReadyAtom,
+	infLinkStatusAtom,
 	playbackStatusAtom,
 	playModeAtom,
 	songInfoAtom,
@@ -35,19 +35,21 @@ export function InfLinkBridge() {
 	const setTimelineInfo = useSetAtom(timelineInfoAtom);
 	const setPlayMode = useSetAtom(playModeAtom);
 	const setVolumeInfo = useSetAtom(volumeInfoAtom);
-	const setReady = useSetAtom(infLinkReadyAtom);
+	const setInfLinkStatus = useSetAtom(infLinkStatusAtom);
 
 	useEffect(() => {
 		let api = window.InfLinkApi;
 		let pollTimer: ReturnType<typeof setInterval> | null = null;
+		let pollCount = 0;
+		const MAX_POLL_ATTEMPTS = 20;
 
 		function attach(resolvedApi: NonNullable<typeof api>) {
+			setInfLinkStatus("ready");
 			setSongInfo(resolvedApi.getCurrentSong());
 			setPlaybackStatus(resolvedApi.getPlaybackStatus());
 			setTimelineInfo(resolvedApi.getTimeline());
 			setPlayMode(resolvedApi.getPlayMode());
 			setVolumeInfo(resolvedApi.getVolume());
-			setReady(true);
 
 			const onSongChange = (e: CustomEvent<SongInfo>) => setSongInfo(e.detail);
 			const onPlayStateChange = (e: CustomEvent<PlaybackStatus>) =>
@@ -79,7 +81,7 @@ export function InfLinkBridge() {
 				resolvedApi.removeEventListener("playModeChange", onPlayModeChange);
 				resolvedApi.removeEventListener("volumeChange", onVolumeChange);
 				resolvedApi.removeEventListener("audioDataUpdate", onAudioData);
-				setReady(false);
+				setInfLinkStatus("waiting");
 			};
 		}
 
@@ -88,6 +90,7 @@ export function InfLinkBridge() {
 		if (api) {
 			cleanup = attach(api);
 		} else {
+			setInfLinkStatus("waiting");
 			pollTimer = setInterval(() => {
 				api = window.InfLinkApi;
 				if (api) {
@@ -95,6 +98,16 @@ export function InfLinkBridge() {
 					pollTimer = null;
 					if (t !== null) clearInterval(t);
 					cleanup = attach(api);
+				} else {
+					pollCount++;
+					if (pollCount >= MAX_POLL_ATTEMPTS) {
+						setInfLinkStatus("error");
+
+						if (pollTimer !== null) {
+							clearInterval(pollTimer);
+							pollTimer = null;
+						}
+					}
 				}
 			}, 500);
 		}
@@ -109,7 +122,7 @@ export function InfLinkBridge() {
 		setTimelineInfo,
 		setPlayMode,
 		setVolumeInfo,
-		setReady,
+		setInfLinkStatus,
 	]);
 
 	return null;

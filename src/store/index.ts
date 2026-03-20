@@ -56,8 +56,10 @@ export const connectionStatusAtom = atom<ConnectionStatus>("disconnected");
 /** 最近一次连接错误信息 */
 export const connectionErrorAtom = atom<string>("");
 
-/** InfLink-rs API 是否已就绪 */
-export const infLinkReadyAtom = atom<boolean>(false);
+export type InfLinkStatus = "waiting" | "ready" | "error";
+
+/** InfLink-rs API 的状态 */
+export const infLinkStatusAtom = atom<InfLinkStatus>("waiting");
 
 /** 当前歌曲信息 */
 export const songInfoAtom = atom<SongInfo | null>(null);
