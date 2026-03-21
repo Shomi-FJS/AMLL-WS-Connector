@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build-and-publish:
@@ -41,6 +43,11 @@ jobs:
           Compress-Archive -Path dist/* -DestinationPath AMLL-WS-Connector.zip
           Rename-Item -Path AMLL-WS-Connector.zip -NewName AMLL-WS-Connector.plugin
         shell: powershell
+
+      - name: 生成 Artifact Attestation
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: "InfLink-rs.plugin"
 
       - name: 提取更新日志
         run: bun run scripts/extract-changelog.ts
