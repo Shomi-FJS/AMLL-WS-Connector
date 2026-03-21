@@ -176,20 +176,13 @@ export function AmllWsClient() {
 
 					if (cover?.blob && wsRef.current?.readyState === WebSocket.OPEN) {
 						const arrayBuffer = await cover.blob.arrayBuffer();
-						const buffer = new ArrayBuffer(6 + arrayBuffer.byteLength);
-						const view = new DataView(buffer);
 
-						view.setUint16(0, 1, true);
-						view.setUint32(2, arrayBuffer.byteLength, true);
-						new Uint8Array(buffer, 6).set(new Uint8Array(arrayBuffer));
+						const buffer = createAmllBinaryPayload(
+							BinaryMagicNumber.SetCoverData,
+							arrayBuffer,
+						);
 
 						wsRef.current.send(buffer);
-					} else if (cover?.url) {
-						sendWs({
-							update: "setCover",
-							source: "uri",
-							url: cover.url,
-						});
 					}
 				} catch (e) {
 					if ((e as Error).name !== "AbortError") {
@@ -267,11 +260,7 @@ export function AmllWsClient() {
 
 			const { data } = (e as CustomEvent<AudioDataInfo>).detail;
 
-			const buffer = new ArrayBuffer(6 + data.byteLength);
-			const view = new DataView(buffer);
-			view.setUint16(0, 0, true);
-			view.setUint32(2, data.byteLength, true);
-			new Uint8Array(buffer, 6).set(new Uint8Array(data));
+			const buffer = createAmllBinaryPayload(BinaryMagicNumber.AudioData, data);
 
 			ws.send(buffer);
 		};
@@ -283,4 +272,24 @@ export function AmllWsClient() {
 	}, []);
 
 	return null;
+}
+
+export enum BinaryMagicNumber {
+	AudioData = 0,
+	SetCoverData = 1,
+}
+
+export function createAmllBinaryPayload(
+	magicNumber: BinaryMagicNumber,
+	payload: ArrayBuffer,
+): ArrayBuffer {
+	const HEADER_SIZE = 6;
+	const buffer = new ArrayBuffer(HEADER_SIZE + payload.byteLength);
+	const view = new DataView(buffer);
+
+	view.setUint16(0, magicNumber, true);
+	view.setUint32(2, payload.byteLength, true);
+	new Uint8Array(buffer, HEADER_SIZE).set(new Uint8Array(payload));
+
+	return buffer;
 }
