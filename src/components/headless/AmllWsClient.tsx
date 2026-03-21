@@ -23,11 +23,13 @@ import type {
 	RepeatMode as NCMRepeatMode,
 } from "@/types/inflink";
 import type { AmllMessage, AmllRepeatMode, AmllStateUpdate } from "@/types/ws";
+import { CoverManager } from "@/utils/cover";
 import { AudioDataBus } from "./InfLinkBridge";
 
 export function AmllWsClient() {
 	const wsRef = useRef<WebSocket | null>(null);
 	const hasAutoConnected = useRef(false);
+	const coverManagerRef = useRef(new CoverManager());
 
 	const wsUrl = useAtomValue(wsUrlAtom);
 	const autoConnect = useAtomValue(autoConnectAtom);
@@ -165,11 +167,43 @@ export function AmllWsClient() {
 		});
 
 		if (songInfo.cover?.url) {
-			sendWs({
-				update: "setCover",
-				source: "uri",
-				url: songInfo.cover.url,
-			});
+			const fetchAndSendCover = async () => {
+				try {
+					const { cover } = await coverManagerRef.current.getCover(
+						songInfo,
+						"500",
+					);
+
+					if (cover?.blob && wsRef.current?.readyState === WebSocket.OPEN) {
+						const arrayBuffer = await cover.blob.arrayBuffer();
+						const buffer = new ArrayBuffer(6 + arrayBuffer.byteLength);
+						const view = new DataView(buffer);
+
+						view.setUint16(0, 1, true);
+						view.setUint32(2, arrayBuffer.byteLength, true);
+						new Uint8Array(buffer, 6).set(new Uint8Array(arrayBuffer));
+
+						wsRef.current.send(buffer);
+					} else if (cover?.url) {
+						sendWs({
+							update: "setCover",
+							source: "uri",
+							url: cover.url,
+						});
+					}
+				} catch (e) {
+					if ((e as Error).name !== "AbortError") {
+						console.error("获取或发送缓存封面失败", e);
+						sendWs({
+							update: "setCover",
+							source: "uri",
+							url: songInfo.cover?.url || "",
+						});
+					}
+				}
+			};
+
+			fetchAndSendCover();
 		}
 	}, [songInfo, status, sendWs]);
 
