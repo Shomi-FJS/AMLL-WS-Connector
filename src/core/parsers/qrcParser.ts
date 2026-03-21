@@ -5,24 +5,31 @@ export function parseQrc(qrcStr: string): AmllLyricLine[] {
 	const parsedLines: AmllLyricLine[] = [];
 
 	// [start,duration]Word (start,duration)word(start,duration)
-	const lineRegex = /^\[(\d+),(\d+)\](.*)$/;
-	const wordRegex = /(.*?)\((\d+),(\d+)\)/g;
+	const lineRegex =
+		/^\[(?<lineStart>\d+),(?<lineDuration>\d+)\](?<lineContent>.*)$/;
+	const wordRegex = /(?<wordText>.*?)\((?<startTime>\d+),(?<duration>\d+)\)/g;
 
 	for (const line of lines) {
 		const trimmedLine = line.trim();
 		if (!trimmedLine) continue;
 
 		const lineMatch = trimmedLine.match(lineRegex);
-		if (!lineMatch) continue;
+		if (!lineMatch || !lineMatch.groups) continue;
 
-		const lineContent = lineMatch[3];
+		const { lineContent } = lineMatch.groups;
 
 		const words: AmllLyricWord[] = [];
 
 		for (const wordMatch of lineContent.matchAll(wordRegex)) {
-			const wordText = wordMatch[1];
-			const startTime = parseInt(wordMatch[2], 10);
-			const duration = parseInt(wordMatch[3], 10);
+			if (!wordMatch.groups) continue;
+
+			const {
+				wordText,
+				startTime: startStr,
+				duration: durStr,
+			} = wordMatch.groups;
+			const startTime = parseInt(startStr, 10);
+			const duration = parseInt(durStr, 10);
 
 			words.push({
 				startTime,

@@ -5,18 +5,18 @@ export function parseLys(lysStr: string): AmllLyricLine[] {
 	const parsedLines: AmllLyricLine[] = [];
 
 	// [property]Word (start,duration)word(start,duration)
-	const lineRegex = /^\[(\d+)\](.*)$/;
-	const wordRegex = /(.*?)\((\d+),(\d+)\)/g;
+	const lineRegex = /^\[(?<propertyId>\d+)\](?<lineContent>.*)$/;
+	const wordRegex = /(?<wordText>.*?)\((?<startTime>\d+),(?<duration>\d+)\)/g;
 
 	for (const line of lines) {
 		const trimmedLine = line.trim();
 		if (!trimmedLine) continue;
 
 		const lineMatch = trimmedLine.match(lineRegex);
-		if (!lineMatch) continue;
+		if (!lineMatch || !lineMatch.groups) continue;
 
-		const propertyId = parseInt(lineMatch[1], 10);
-		const lineContent = lineMatch[2];
+		const { propertyId: propIdStr, lineContent } = lineMatch.groups;
+		const propertyId = parseInt(propIdStr, 10);
 
 		// #### 歌词行属性信息
 		// | 属性  | 背景人声 | 对唱视图 |
@@ -38,9 +38,15 @@ export function parseLys(lysStr: string): AmllLyricLine[] {
 		const words: AmllLyricWord[] = [];
 
 		for (const wordMatch of lineContent.matchAll(wordRegex)) {
-			const wordText = wordMatch[1];
-			const startTime = parseInt(wordMatch[2], 10);
-			const duration = parseInt(wordMatch[3], 10);
+			if (!wordMatch.groups) continue;
+
+			const {
+				wordText,
+				startTime: startStr,
+				duration: durStr,
+			} = wordMatch.groups;
+			const startTime = parseInt(startStr, 10);
+			const duration = parseInt(durStr, 10);
 
 			words.push({
 				startTime,
