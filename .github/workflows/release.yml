@@ -47,7 +47,7 @@ jobs:
       - name: 生成 Artifact Attestation
         uses: actions/attest-build-provenance@v4
         with:
-          subject-path: "InfLink-rs.plugin"
+          subject-path: "AMLL-WS-Connector.plugin"
 
       - name: 提取更新日志
         run: bun run scripts/extract-changelog.ts
