@@ -7,6 +7,7 @@ import {
 import { parseYrc } from "@/core/parsers/yrcParser";
 import type { v2 } from "@/types/ncm";
 import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
+import { extractRawLyricData } from "@/utils/format-lyric";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
 
@@ -82,7 +83,19 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	}
 
 	private handleLrcLoad(payload: v2.LrcLoadPayload) {
-		if (!payload || !payload.lyric) return;
+		if (!payload || !payload.lyric) {
+			this.dispatch("rawlyric", null);
+			return;
+		}
+
+		const rawLyricData = extractRawLyricData({
+			yrc: payload.lyric.yrc?.lyric,
+			lrcLines: payload.lyric.lrc?.lines,
+			trans: payload.lyric.tlyric?.lines,
+			roma: payload.lyric.romalrc?.lines,
+		});
+
+		this.dispatch("rawlyric", rawLyricData);
 
 		this.baseLyric = this.parseV2Payload(payload.lyric);
 		if (!this.baseLyric) return;

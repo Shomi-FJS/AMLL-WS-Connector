@@ -131,3 +131,16 @@ export const timelineOffsetAtom = atomWithStorage<number>(
 	"amll-ws-connector:timelineOffset",
 	0,
 );
+
+export interface RawLyricData {
+	main: string;
+	trans?: string;
+	roma?: string;
+}
+
+/**
+ * 每个歌词源获取到的原始歌词数据
+ */
+export const rawLyricsContentAtom = atom<Record<string, RawLyricData | null>>(
+	{},
+);

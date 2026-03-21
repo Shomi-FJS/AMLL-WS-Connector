@@ -3,6 +3,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DragHandleIcon from "@mui/icons-material/DragHandle";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
 	Alert,
 	Box,
@@ -24,14 +25,16 @@ import {
 	Tooltip,
 	Typography,
 } from "@mui/material";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useState } from "react";
 import {
 	type LyricSearchStatus,
 	lyricSearchStatusAtom,
 	lyricSourcesConfigAtom,
+	rawLyricsContentAtom,
 } from "@/store";
 import { parseSourceString } from "@/utils/source";
+import { RawLyricViewerDialog } from "./RawLyricViewerDialog";
 
 export interface LyricSourcesDialogProps {
 	open: boolean;
@@ -52,8 +55,10 @@ const STATUS_CONFIG: Record<
 export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 	const [sources, setSources] = useAtom(lyricSourcesConfigAtom);
 	const [searchStatuses] = useAtom(lyricSearchStatusAtom);
+	const rawLyricsContentMap = useAtomValue(rawLyricsContentAtom);
 	const [newSourceStr, setNewSourceStr] = useState("");
 	const [errorMsg, setErrorMsg] = useState("");
+	const [viewerOpen, setViewerOpen] = useState(false);
 
 	const [dragIndex, setDragIndex] = useState<number | null>(null);
 	const [dropLineIndex, setDropLineIndex] = useState<number | null>(null);
@@ -91,6 +96,17 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 			setErrorMsg("解析失败，请检查歌词源字符串格式是否正确");
 		}
 	};
+
+	const handleViewRawLyric = () => {
+		setViewerOpen(true);
+		handleMenuClose();
+	};
+
+	const targetSource =
+		activeMenuIndex !== null ? sources[activeMenuIndex] : null;
+	const targetRawLyric = targetSource
+		? rawLyricsContentMap[targetSource.source.id]
+		: null;
 
 	const handleDragStart = (
 		e: React.DragEvent<HTMLLIElement>,
@@ -359,6 +375,16 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 						horizontal: "right",
 					}}
 				>
+					<MenuItem onClick={handleViewRawLyric} disabled={!targetRawLyric}>
+						<ListItemIcon>
+							<VisibilityIcon
+								fontSize="small"
+								color={!targetRawLyric ? "disabled" : "inherit"}
+							/>
+						</ListItemIcon>
+						<ListItemText>查看原始歌词</ListItemText>
+					</MenuItem>
+
 					<MenuItem
 						onClick={handleMoveUp}
 						disabled={activeMenuIndex === 0 || activeMenuIndex === null}
@@ -445,6 +471,14 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 					完成
 				</Button>
 			</DialogActions>
+
+			{targetSource && (
+				<RawLyricViewerDialog
+					open={viewerOpen}
+					onClose={() => setViewerOpen(false)}
+					content={targetRawLyric}
+				/>
+			)}
 		</Dialog>
 	);
 }

@@ -38,6 +38,7 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 
 				const isExist = await betterncm.fs.exists(filePath);
 				if (!isExist) {
+					this.dispatch("rawlyric", null);
 					this.dispatch("update", null);
 					return;
 				}
@@ -48,15 +49,18 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 				if (response.status === 200) {
 					text = await response.text();
 				} else {
+					this.dispatch("rawlyric", null);
 					this.dispatch("update", null);
 					return;
 				}
 			}
 
+			this.dispatch("rawlyric", { main: text });
 			const parsedLyric = this.parseRawLyric(text, this.source.format);
 			this.dispatch("update", parsedLyric);
 		} catch (e) {
 			console.error(`[ExternalAdapter: ${this.source.name}] 获取歌词失败`, e);
+			this.dispatch("rawlyric", null);
 			this.dispatch("update", null);
 		}
 	}

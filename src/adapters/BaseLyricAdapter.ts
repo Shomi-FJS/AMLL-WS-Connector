@@ -1,4 +1,4 @@
-import type { LyricSearchStatus } from "@/store";
+import type { LyricSearchStatus, RawLyricData } from "@/store";
 import type { SongInfo } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
@@ -8,6 +8,10 @@ export interface LyricAdapterEventMap {
 	update: CustomEvent<AmllLyricContent | null>;
 	/** 歌词获取状态变更时触发 */
 	statuschange: CustomEvent<Record<string, LyricSearchStatus>>;
+	/** 获取到原始歌词数据时派发 */
+	rawlyric: CustomEvent<RawLyricData | null>;
+	/** 原始歌词数据字典变更时触发 */
+	rawlyricchange: CustomEvent<Record<string, RawLyricData | null>>;
 }
 
 export abstract class BaseLyricAdapter extends TypedEventTarget<LyricAdapterEventMap> {

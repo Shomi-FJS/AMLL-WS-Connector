@@ -2,7 +2,7 @@ import type {
 	BaseLyricAdapter,
 	LyricAdapterEventMap,
 } from "@/adapters/BaseLyricAdapter";
-import type { LyricSearchStatus } from "@/store";
+import type { LyricSearchStatus, RawLyricData } from "@/store";
 import type { SongInfo } from "@/types/inflink";
 import type { AmllLyricContent } from "@/types/ws";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
@@ -10,6 +10,7 @@ import { TypedEventTarget } from "@/utils/TypedEventTarget";
 export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 	private adapters: BaseLyricAdapter[] = [];
 	private caches: Map<string, AmllLyricContent | null> = new Map();
+	private rawLyricDataCache: Record<string, RawLyricData | null> = {};
 
 	private currentMusicId: string | number | null = null;
 	private statuses: Record<string, LyricSearchStatus> = {};
@@ -25,21 +26,27 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 	public destroy(): void {
 		for (const adapter of this.adapters) {
 			adapter.removeEventListener("update", this.handleAdapterUpdate);
+			adapter.removeEventListener("rawlyric", this.handleAdapterRawLyricData);
 			adapter.destroy();
 		}
 		this.adapters = [];
 		this.caches.clear();
+		this.rawLyricDataCache = {};
 	}
 
 	public setAdapters(adapters: BaseLyricAdapter[]) {
 		for (const adapter of this.adapters) {
 			adapter.removeEventListener("update", this.handleAdapterUpdate);
+			adapter.removeEventListener("rawlyric", this.handleAdapterRawLyricData);
 		}
 
 		this.adapters = adapters;
 		this.caches.clear();
+		this.rawLyricDataCache = {};
+
 		for (const adapter of this.adapters) {
 			adapter.addEventListener("update", this.handleAdapterUpdate);
+			adapter.addEventListener("rawlyric", this.handleAdapterRawLyricData);
 		}
 	}
 
@@ -47,6 +54,7 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 		if (this.currentMusicId !== songInfo.ncmId) {
 			this.currentMusicId = songInfo.ncmId;
 			this.caches.clear();
+			this.rawLyricDataCache = {};
 			this.dispatch("update", null);
 		}
 
@@ -84,6 +92,14 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 		}
 
 		this.evaluateAndDispatch();
+	};
+
+	private handleAdapterRawLyricData = (
+		event: CustomEvent<RawLyricData | null>,
+	) => {
+		const adapter = event.currentTarget as BaseLyricAdapter;
+		this.rawLyricDataCache[adapter.id] = event.detail;
+		this.dispatch("rawlyricchange", { ...this.rawLyricDataCache });
 	};
 
 	private evaluateAndDispatch() {

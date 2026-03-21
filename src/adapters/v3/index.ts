@@ -6,6 +6,7 @@ import {
 import { parseYrc } from "@/core/parsers/yrcParser";
 import type { v3 } from "@/types/ncm";
 import type { AmllLyricContent } from "@/types/ws";
+import { extractRawLyricData } from "@/utils/format-lyric";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import {
 	findModule,
@@ -88,7 +89,10 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 		if (!lyricState || lyricState.isLoading) return;
 
 		const amllLyric = this.parseNcmLyric(lyricState);
-		if (!amllLyric) return;
+		if (!amllLyric) {
+			this.dispatch("rawlyric", null);
+			return;
+		}
 
 		const currentJson = JSON.stringify(amllLyric);
 
@@ -98,6 +102,18 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 
 		this.lastSentLyricJson = currentJson;
 
+		const rawLyricData = extractRawLyricData({
+			yrc: lyricState.yrcInfo?.yrc,
+			lrcLines: lyricState.lyricLines,
+			trans: lyricState.yrcInfo?.yrc
+				? lyricState.yrcInfo.yrcTrans
+				: lyricState.tlyricLines,
+			roma: lyricState.yrcInfo?.yrc
+				? lyricState.yrcInfo.yrcRoma
+				: lyricState.romaLyricLines,
+		});
+
+		this.dispatch("rawlyric", rawLyricData);
 		this.dispatch("update", amllLyric);
 	}
 
