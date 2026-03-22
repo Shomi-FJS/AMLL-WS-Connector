@@ -10,8 +10,16 @@ import {
 	connectionErrorAtom,
 	connectionStatusAtom,
 	lyricAtom,
+	nextAtom,
+	pauseAtom,
+	playAtom,
 	playbackStatusAtom,
 	playModeAtom,
+	previousAtom,
+	seekToAtom,
+	setRepeatModeAtom,
+	setShuffleModeAtom,
+	setVolumeAtom,
 	songInfoAtom,
 	timelineInfoAtom,
 	timelineOffsetAtom,
@@ -45,6 +53,15 @@ export function AmllWsClient() {
 
 	const lyricContent = useAtomValue(lyricAtom);
 
+	const play = useSetAtom(playAtom);
+	const pause = useSetAtom(pauseAtom);
+	const next = useSetAtom(nextAtom);
+	const previous = useSetAtom(previousAtom);
+	const setVolume = useSetAtom(setVolumeAtom);
+	const seekTo = useSetAtom(seekToAtom);
+	const setRepeatMode = useSetAtom(setRepeatModeAtom);
+	const setShuffleMode = useSetAtom(setShuffleModeAtom);
+
 	useEffect(() => {
 		if (!hasAutoConnected.current && autoConnect && status === "disconnected") {
 			hasAutoConnected.current = true;
@@ -76,28 +93,25 @@ export function AmllWsClient() {
 
 					if (message.type === "command") {
 						const cmd = message.value;
-						const api = window.InfLinkApi;
-
-						if (!api) return;
 
 						switch (cmd.command) {
 							case "pause":
-								api.pause();
+								pause();
 								break;
 							case "resume":
-								api.play();
+								play();
 								break;
 							case "forwardSong":
-								api.next();
+								next();
 								break;
 							case "backwardSong":
-								api.previous();
+								previous();
 								break;
 							case "setVolume":
-								api.setVolume(cmd.volume);
+								setVolume(cmd.volume);
 								break;
 							case "seekPlayProgress":
-								api.seekTo(cmd.progress);
+								seekTo(cmd.progress);
 								break;
 							case "setRepeatMode": {
 								const modeMap: Record<AmllRepeatMode, NCMRepeatMode> = {
@@ -105,13 +119,11 @@ export function AmllWsClient() {
 									all: "List",
 									one: "Track",
 								};
-								api.setRepeatMode(modeMap[cmd.mode]);
+								setRepeatMode(modeMap[cmd.mode]);
 								break;
 							}
 							case "setShuffleMode":
-								if (api.getPlayMode().isShuffling !== cmd.enabled) {
-									api.toggleShuffle();
-								}
+								setShuffleMode(cmd.enabled);
 								break;
 							default: {
 								const exhaustiveCheck: never = cmd;
@@ -142,7 +154,20 @@ export function AmllWsClient() {
 			wsRef.current.close();
 			wsRef.current = null;
 		}
-	}, [status, wsUrl, setStatus, setError]);
+	}, [
+		status,
+		wsUrl,
+		setStatus,
+		setError,
+		play,
+		pause,
+		next,
+		previous,
+		setVolume,
+		seekTo,
+		setRepeatMode,
+		setShuffleMode,
+	]);
 
 	useEffect(() => {
 		return () => {

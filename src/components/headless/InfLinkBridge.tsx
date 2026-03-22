@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import {
 	infLinkStatusAtom,
 	playbackStatusAtom,
+	playerApiProviderAtom,
 	playModeAtom,
 	songInfoAtom,
 	timelineInfoAtom,
@@ -51,6 +52,8 @@ export function InfLinkBridge() {
 	const setVolumeInfo = useSetAtom(volumeInfoAtom);
 	const setInfLinkStatus = useSetAtom(infLinkStatusAtom);
 
+	const setPlayerApi = useSetAtom(playerApiProviderAtom);
+
 	useEffect(() => {
 		let api = window.InfLinkApi;
 		let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -58,6 +61,8 @@ export function InfLinkBridge() {
 		const MAX_POLL_ATTEMPTS = 20;
 
 		function attach(resolvedApi: NonNullable<typeof api>) {
+			setPlayerApi(resolvedApi);
+
 			if (isVersionOutdated(resolvedApi.version)) {
 				setInfLinkStatus("outdated");
 			} else {
@@ -100,6 +105,7 @@ export function InfLinkBridge() {
 				resolvedApi.removeEventListener("playModeChange", onPlayModeChange);
 				resolvedApi.removeEventListener("volumeChange", onVolumeChange);
 				resolvedApi.removeEventListener("audioDataUpdate", onAudioData);
+				setPlayerApi(null);
 				setInfLinkStatus("waiting");
 			};
 		}
@@ -142,6 +148,7 @@ export function InfLinkBridge() {
 		setPlayMode,
 		setVolumeInfo,
 		setInfLinkStatus,
+		setPlayerApi,
 	]);
 
 	return null;

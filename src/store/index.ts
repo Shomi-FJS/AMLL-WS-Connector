@@ -20,6 +20,8 @@ import {
 	type LyricSource,
 } from "@/utils/source";
 
+export * from "./api";
+
 export interface ConfiguredLyricSource {
 	source: LyricSource;
 	enabled: boolean;
