@@ -26,7 +26,7 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 	public destroy(): void {}
 
 	public async fetchLyric(songInfo: SongInfo): Promise<void> {
-		if (!songInfo || !songInfo.ncmId) return;
+		if (!songInfo?.ncmId) return;
 
 		const url = this.buildUrl(songInfo);
 

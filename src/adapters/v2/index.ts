@@ -83,7 +83,7 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	}
 
 	private handleLrcLoad(payload: v2.LrcLoadPayload) {
-		if (!payload || !payload.lyric) {
+		if (!payload?.lyric) {
 			this.dispatch("rawlyric", null);
 			return;
 		}

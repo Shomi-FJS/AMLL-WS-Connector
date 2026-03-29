@@ -13,7 +13,7 @@ export function parseLys(lysStr: string): AmllLyricLine[] {
 		if (!trimmedLine) continue;
 
 		const lineMatch = trimmedLine.match(lineRegex);
-		if (!lineMatch || !lineMatch.groups) continue;
+		if (!lineMatch?.groups) continue;
 
 		const { propertyId: propIdStr, lineContent } = lineMatch.groups;
 		const propertyId = parseInt(propIdStr, 10);

@@ -16,7 +16,7 @@ export function parseLrc(lrcStr: string): LrcLine[] {
 	for (const line of lines) {
 		const match = line.match(regex);
 		if (match?.groups) {
-			const { min, sec, ms, text: rawText } = match.groups;
+			const { min, sec, ms, text } = match.groups;
 
 			const minVal = parseInt(min, 10);
 			const secVal = parseInt(sec, 10);
@@ -27,11 +27,8 @@ export function parseLrc(lrcStr: string): LrcLine[] {
 			}
 
 			const time = minVal * 60000 + secVal * 1000 + msVal;
-			const text = rawText.trim();
 
-			if (text) {
-				result.push({ time, text });
-			}
+			result.push({ time, text });
 		}
 	}
 	return result;

@@ -14,7 +14,7 @@ export function parseQrc(qrcStr: string): AmllLyricLine[] {
 		if (!trimmedLine) continue;
 
 		const lineMatch = trimmedLine.match(lineRegex);
-		if (!lineMatch || !lineMatch.groups) continue;
+		if (!lineMatch?.groups) continue;
 
 		const { lineContent } = lineMatch.groups;
 

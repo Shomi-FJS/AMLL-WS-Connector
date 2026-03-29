@@ -6,12 +6,10 @@
 		"target": "ESNext",
 		"module": "Preserve",
 		"moduleDetection": "force",
-		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
 		},
 		"jsx": "react-jsx",
-		"allowJs": false,
 
 		// Bundler mode
 		"moduleResolution": "bundler",
