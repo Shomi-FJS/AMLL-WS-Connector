@@ -24,9 +24,9 @@ import {
 	Typography,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { Provider, useAtom, useAtomValue } from "jotai";
+import { Provider, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
-import { AmllWsClient } from "./components/headless/AmllWsClient";
+import { AmllStateSync } from "./components/headless/AmllStateSync";
 import { InfLinkBridge } from "./components/headless/InfLinkBridge";
 import { LyricSync } from "./components/headless/LyricSync";
 import { DebugDialog } from "./components/ui/DebugDialog";
@@ -38,7 +38,9 @@ import {
 	autoReconnectAtom,
 	type ConnectionStatus,
 	connectionErrorAtom,
+	connectionIntentAtom,
 	connectionStatusAtom,
+	forceReconnectTriggerAtom,
 	infLinkStatusAtom,
 	timelineOffsetAtom,
 	wsUrlAtom,
@@ -94,7 +96,7 @@ export default function App() {
 			<ThemeProvider theme={theme}>
 				<Provider>
 					<InfLinkBridge />
-					<AmllWsClient />
+					<AmllStateSync />
 					<LyricSync />
 					<Main />
 				</Provider>
@@ -107,8 +109,10 @@ function Main() {
 	const [wsUrl, setWsUrl] = useAtom(wsUrlAtom);
 	const [autoConnect, setAutoConnect] = useAtom(autoConnectAtom);
 	const [autoReconnect, setAutoReconnect] = useAtom(autoReconnectAtom);
-	const [status, setStatus] = useAtom(connectionStatusAtom);
+	const status = useAtomValue(connectionStatusAtom);
+	const [intent, setIntent] = useAtom(connectionIntentAtom);
 	const [error, setError] = useAtom(connectionErrorAtom);
+	const setForceTrigger = useSetAtom(forceReconnectTriggerAtom);
 	const [displayError, setDisplayError] = useState(error);
 	const [debugOpen, setDebugOpen] = useState(false);
 	const [sourcesDialogOpen, setSourcesDialogOpen] = useState(false);
@@ -121,11 +125,15 @@ function Main() {
 	const isConnecting = status === "connecting";
 
 	function handleToggleConnection() {
-		if (isConnected || isConnecting) {
-			setStatus("disconnected");
+		if (isConnected) {
+			setIntent(false);
 			setError("");
 		} else {
-			setStatus("connecting");
+			if (intent) {
+				setForceTrigger((prev) => prev + 1);
+			} else {
+				setIntent(true);
+			}
 			setError("");
 		}
 	}

@@ -44,7 +44,14 @@ export const wsUrlAtom = atomWithStorage(
 export const autoConnectAtom = atomWithStorage(
 	"amll-ws-connector:autoConnect",
 	false,
+	undefined,
+	{ getOnInit: true },
 );
+
+/**
+ * 用户是否期望连接到 WS 服务器
+ */
+export const connectionIntentAtom = atom<boolean>(false);
 
 /** 是否在连接断开后自动重连 */
 export const autoReconnectAtom = atomWithStorage(
@@ -152,3 +159,24 @@ export interface RawLyricData {
 export const rawLyricsContentAtom = atom<Record<string, RawLyricData | null>>(
 	{},
 );
+
+/**
+ * 自定义重连等待时长
+ * @default 3000
+ */
+export const reconnectDelayAtom = atomWithStorage<number>(
+	"amll-ws-connector:reconnectDelay",
+	3000,
+);
+
+/**
+ * 当前重连的倒计时剩余时间（秒）
+ *
+ * null 表示没有在等待重连
+ */
+export const reconnectCountdownAtom = atom<number | null>(null);
+
+/**
+ * 用于给 UI 强制重连 WS
+ */
+export const forceReconnectTriggerAtom = atom(0);
