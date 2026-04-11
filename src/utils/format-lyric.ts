@@ -4,16 +4,16 @@ export type RawLyricLine = {
 	/**
 	 * 单位是秒
 	 *
-	 * 这个是给网易云音乐用的，其内部使用秒作为单位
+	 * 这个是给网易云音乐用的，其内部使用秒作为单位。非滚动歌词可能为 undefined
 	 */
-	time: number;
+	time?: number;
 	lyric: string;
 };
 
 export function buildLrcString(lines: RawLyricLine[]): string {
 	return lines
 		.map((l) => {
-			const totalCs = Math.round(l.time * 100);
+			const totalCs = Math.round((l.time ?? 0) * 100);
 			const m = Math.floor(totalCs / 6000)
 				.toString()
 				.padStart(2, "0");

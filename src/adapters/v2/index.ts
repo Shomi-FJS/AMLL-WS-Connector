@@ -166,6 +166,12 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	private parseV2Payload(
 		lyricObj: NonNullable<v2.LrcLoadPayload["lyric"]>,
 	): AmllLyricContent | null {
+		if (lyricObj.lrc?.scrollable === false) {
+			return {
+				format: "structured",
+				lines: [],
+			};
+		}
 		if (lyricObj.yrc?.lyric) {
 			const yrcLines = parseYrc(lyricObj.yrc.lyric);
 

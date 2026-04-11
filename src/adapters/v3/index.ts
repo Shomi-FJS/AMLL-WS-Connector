@@ -133,6 +133,13 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 	private parseNcmLyric(
 		rawState: v3.NcmAsyncLyricState,
 	): AmllLyricContent | null {
+		if (rawState.scrollable === false) {
+			return {
+				format: "structured",
+				lines: [],
+			};
+		}
+
 		if (rawState.yrcInfo?.yrc) {
 			const yrcLines = parseYrc(rawState.yrcInfo.yrc);
 
@@ -157,7 +164,7 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 		}
 
 		const rawLrc: LrcLine[] = lines.map((l) => ({
-			time: l.time * 1000,
+			time: (l.time ?? 0) * 1000,
 			text: l.lyric,
 		}));
 		const tTexts = rawState.tlyricLines?.map((l) => l.lyric) ?? [];

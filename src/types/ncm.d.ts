@@ -38,7 +38,7 @@ export namespace v3 {
 	 */
 	export interface NcmLyricLine {
 		/** 歌词对应的时间，单位为秒 */
-		time: number;
+		time?: number;
 		/** 歌词文本 */
 		lyric: string;
 	}
@@ -161,7 +161,7 @@ export namespace v2 {
 		lines: Line[];
 		nolyric: boolean;
 		offset: number;
-		scrollable: number;
+		scrollable: boolean;
 		source: string;
 		uncollected: boolean;
 		version: number;
