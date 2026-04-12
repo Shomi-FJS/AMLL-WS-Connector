@@ -180,3 +180,19 @@ export const reconnectCountdownAtom = atom<number | null>(null);
  * 用于给 UI 强制重连 WS
  */
 export const forceReconnectTriggerAtom = atom(0);
+
+export const filterMetadataAtom = atomWithStorage(
+	"amll-ws-connector:filterMetadata",
+	true,
+);
+
+const FILTER_METADATA_STORAGE_KEY = "amll-ws-connector:filterMetadata";
+
+export function isFilterMetadataEnabled(): boolean {
+	try {
+		const val = localStorage.getItem(FILTER_METADATA_STORAGE_KEY);
+		return val === null ? true : JSON.parse(val);
+	} catch {
+		return true;
+	}
+}

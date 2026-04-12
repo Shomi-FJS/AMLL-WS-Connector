@@ -10,6 +10,7 @@
 	"description": "适用于 AMLL Player WS 协议的 Betterncm 插件实现",
 	"preview": "preview.png",
 	"type": "extension",
+	"noDevReload": true,
 	"loadAfter": ["InfLinkrs"],
 	"requirements": ["InfLinkrs"],
 	"ncm3-compatible": true,

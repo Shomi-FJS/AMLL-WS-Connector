@@ -10,6 +10,10 @@
 		"typecheck": "bun tsgo -b",
 		"lint": "bun biome check .",
 		"format": "bun biome format . --write",
+		"devtools:launch": "bun scripts/launch-cloudmusic-devtools.ts",
+		"devtools:resolve": "bun scripts/devtools-resolve.ts",
+		"devtools:proxy": "bun scripts/devtools-proxy.ts",
+		"devtools:tail": "bun scripts/devtools-tail.ts",
 		"cs:add": "bun changeset add",
 		"cs:version": "bun changeset version && bun scripts/sync-versions.ts"
 	},
@@ -20,6 +24,7 @@
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
 		"@typescript/native-preview": "^7.0.0-dev.20260401.1",
+		"chrome-remote-interface": "^0.34.0",
 		"redux": "^5.0.1"
 	},
 	"dependencies": {
@@ -32,7 +37,8 @@
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
 		"ttml-processor": "^0.1.4",
-		"uuid": "^13.0.0"
+		"uuid": "^13.0.0",
+		"ws": "^8.20.0"
 	},
 	"packageManager": "bun@1.3.11"
 }

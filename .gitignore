@@ -32,3 +32,12 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+.trae/
+.github/
+.codebuddy-plugin/
+.arts/
+amll-ws-connector.plugin
+build-plugin.ps1
+
+
+

@@ -1,5 +1,5 @@
 import { feature } from "bun:bundle";
-import type { LrcLine } from "@/core/parsers/lrcParser";
+import { isMetadataLine } from "@/core/parsers/lrcParser";
 import {
 	buildAmllLyricLines,
 	mergeSubLyrics,
@@ -9,7 +9,119 @@ import type { v2 } from "@/types/ncm";
 import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
 import { extractRawLyricData } from "@/utils/format-lyric";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
+import { isFilterMetadataEnabled } from "@/store";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
+
+function matchByTimestampV2(
+	lines: Array<{ time: number; lyric: string }>,
+	targetTimeMs: number,
+): string {
+	if (lines.length === 0) return "";
+
+	let bestIdxMs = -1, bestDiffMs = Infinity;
+	let bestIdxSec = -1, bestDiffSec = Infinity;
+
+	for (let i = 0; i < lines.length; i++) {
+		const timeVal = lines[i].time;
+		const diffMs = Math.abs(timeVal - targetTimeMs);
+		if (diffMs < bestDiffMs) {
+			bestDiffMs = diffMs;
+			bestIdxMs = i;
+		}
+		const diffSec = Math.abs(timeVal * 1000 - targetTimeMs);
+		if (diffSec < bestDiffSec) {
+			bestDiffSec = diffSec;
+			bestIdxSec = i;
+		}
+	}
+
+	const TOLERANCE = 3000;
+	if (bestDiffMs <= TOLERANCE && bestDiffMs <= bestDiffSec) {
+		return lines[bestIdxMs].lyric;
+	}
+	if (bestDiffSec <= TOLERANCE && bestDiffSec < bestDiffMs) {
+		return lines[bestIdxSec].lyric;
+	}
+	return "";
+}
+
+/**
+ * 批量时间戳匹配（v2 版）— 两轮去重匹配
+ *
+ * 第一轮：严格容差 3s，确保精确对齐
+ * 第二轮：放宽容差 15s，为未命中的目标找最近剩余源
+ * 兼容 v2 时间单位不确定的问题（可能是秒或毫秒）
+ */
+function matchTranslationsByTimeV2(
+	sources: Array<{ time: number; lyric: string }>,
+	targetTimes: number[],
+): string[] {
+	if (sources.length === 0 || targetTimes.length === 0) {
+		return new Array(targetTimes.length).fill("");
+	}
+
+	const result: string[] = new Array(targetTimes.length).fill("");
+
+	const calcDiff = (srcIdx: number, targetMs: number): number => {
+		const srcTime = Number(sources[srcIdx].time);
+		if (Number.isNaN(srcTime)) return Infinity;
+		const diffMs = Math.abs(srcTime - targetMs);
+		const diffSec = Math.abs(srcTime * 1000 - targetMs);
+		return Math.min(diffMs, diffSec);
+	};
+
+	const candidates = targetTimes.map((t, ti) => {
+		let bestIdx = -1;
+		let bestDiff = Infinity;
+		for (let i = 0; i < sources.length; i++) {
+			const d = calcDiff(i, t);
+			if (d < bestDiff) {
+				bestDiff = d;
+				bestIdx = i;
+			}
+		}
+		return { ti, srcIdx: bestIdx, diff: bestDiff };
+	});
+
+	candidates.sort((a, b) => a.diff - b.diff);
+
+	const srcUsed = new Set<number>();
+
+	const assign = (tolerance: number) => {
+		for (const c of candidates) {
+			if (result[c.ti]) continue;
+			if (srcUsed.has(c.srcIdx)) {
+				let altBest = -1;
+				let altDiff = Infinity;
+				for (let i = 0; i < sources.length; i++) {
+					if (srcUsed.has(i)) continue;
+					const d = calcDiff(i, targetTimes[c.ti]);
+					if (d < altDiff) {
+						altDiff = d;
+						altBest = i;
+					}
+				}
+				if (altBest >= 0 && altDiff <= tolerance) {
+					result[c.ti] = sources[altBest].lyric;
+					srcUsed.add(altBest);
+				}
+			} else if (c.diff <= tolerance) {
+				result[c.ti] = sources[c.srcIdx].lyric;
+				srcUsed.add(c.srcIdx);
+			}
+		}
+	};
+
+	assign(3000);
+	assign(15000);
+
+	for (const c of candidates) {
+		if (result[c.ti]) continue;
+		result[c.ti] = sources[c.srcIdx].lyric;
+	}
+
+	return result;
+}
 
 export class V2LyricAdapter extends BaseLyricAdapter {
 	public readonly id = LYRIC_SOURCE_UUID_BUILTIN_NCM;
@@ -76,7 +188,6 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	}
 
 	public fetchLyric(): void {
-		// V2 版本似乎无论是否需要展示歌词都会自己去获取歌词
 		if (this.baseLyric) {
 			this.emitAdjustedLyric();
 		}
@@ -166,6 +277,8 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	private parseV2Payload(
 		lyricObj: NonNullable<v2.LrcLoadPayload["lyric"]>,
 	): AmllLyricContent | null {
+		const filterEnabled = isFilterMetadataEnabled();
+
 		if (lyricObj.lrc?.scrollable === false) {
 			return {
 				format: "structured",
@@ -173,16 +286,86 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 			};
 		}
 		if (lyricObj.yrc?.lyric) {
-			const yrcLines = parseYrc(lyricObj.yrc.lyric);
+			const allYrcLines = parseYrc(lyricObj.yrc.lyric);
 
-			if (yrcLines.length > 0) {
-				const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
-				const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
+			if (allYrcLines.length > 0) {
+				if (filterEnabled) {
+					const lineTexts = allYrcLines.map((yl) =>
+						yl.words.map((w) => w.word).join("").trim(),
+					);
 
-				return {
-					format: "structured",
-					lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
-				};
+					let start = 0;
+					while (start < lineTexts.length && isMetadataLine(lineTexts[start])) {
+						start++;
+					}
+					let end = lineTexts.length - 1;
+					while (end >= start && isMetadataLine(lineTexts[end])) {
+						end--;
+					}
+
+					const validIndices: number[] = [];
+					for (let i = start; i <= end; i++) {
+						if (!isMetadataLine(lineTexts[i])) {
+							validIndices.push(i);
+						}
+					}
+
+					if (validIndices.length > 0) {
+						const filteredYrcLines = validIndices.map((i) => allYrcLines[i]);
+						const tRawLines = lyricObj.tlyric?.lines ?? [];
+						const rRawLines = lyricObj.romalrc?.lines ?? [];
+
+						// Strip metadata blocks from start/end of translation sources
+						let tStart = 0;
+						while (tStart < tRawLines.length && isMetadataLine(tRawLines[tStart].lyric)) {
+							tStart++;
+						}
+						let tEnd = tRawLines.length - 1;
+						while (tEnd >= tStart && isMetadataLine(tRawLines[tEnd].lyric)) {
+							tEnd--;
+						}
+						let rStart = 0;
+						while (rStart < rRawLines.length && isMetadataLine(rRawLines[rStart].lyric)) {
+							rStart++;
+						}
+						let rEnd = rRawLines.length - 1;
+						while (rEnd >= rStart && isMetadataLine(rRawLines[rEnd].lyric)) {
+							rEnd--;
+						}
+
+						const tStripped = tRawLines.slice(tStart, tEnd + 1);
+						const rStripped = rRawLines.slice(rStart, rEnd + 1);
+
+						const tFiltered = tStripped.filter((l) => !isMetadataLine(l.lyric));
+						const rFiltered = rStripped.filter((l) => !isMetadataLine(l.lyric));
+
+						const yrcTimes = validIndices.map((vi) => allYrcLines[vi].startTime);
+						const tTexts = matchTranslationsByTimeV2(tFiltered, yrcTimes);
+						const romaTexts = matchTranslationsByTimeV2(rFiltered, yrcTimes);
+
+						const mergedLines = mergeSubLyrics(filteredYrcLines, tTexts, romaTexts);
+
+						return {
+							format: "structured",
+							lines: mergedLines,
+						};
+					}
+				} else {
+					const tRawLines = lyricObj.tlyric?.lines ?? [];
+					const rRawLines = lyricObj.romalrc?.lines ?? [];
+
+					const tTexts = allYrcLines.map((line) =>
+						matchByTimestampV2(tRawLines, line.startTime),
+					);
+					const romaTexts = allYrcLines.map((line) =>
+						matchByTimestampV2(rRawLines, line.startTime),
+					);
+
+					return {
+						format: "structured",
+						lines: mergeSubLyrics(allYrcLines, tTexts, romaTexts),
+					};
+				}
 			}
 		}
 
@@ -191,12 +374,71 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 			Array.isArray(lyricObj.lrc.lines) &&
 			lyricObj.lrc.lines.length > 0
 		) {
-			const rawLrc: LrcLine[] = lyricObj.lrc.lines.map((l) => ({
-				time: l.time * 1000,
-				text: l.lyric,
-			}));
-			const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
-			const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
+			const hasTranslation = lyricObj.tlyric?.lines && lyricObj.tlyric.lines.length > 0;
+			const validIndices: number[] = [];
+			const rawLrc: LrcLine[] = [];
+			const inlineTransTexts: string[] = [];
+
+			for (let i = 0; i < lyricObj.lrc.lines.length; i++) {
+				const line = lyricObj.lrc.lines[i];
+				if (filterEnabled && isMetadataLine(line.lyric)) {
+					continue;
+				}
+
+				validIndices.push(i);
+
+				let lyricText = line.lyric;
+				let inlineTrans = "";
+
+				if (filterEnabled && lyricText.includes("/")) {
+					if (hasTranslation && lyricObj.tlyric?.lines?.[i]?.lyric) {
+						const slashIndex = lyricText.lastIndexOf("/");
+						const beforeSlash = lyricText.substring(0, slashIndex).trim();
+						const afterSlash = lyricText.substring(slashIndex + 1).trim();
+						if (afterSlash.length > 0 && beforeSlash.length > 0) {
+							lyricText = beforeSlash;
+						}
+					} else if (!hasTranslation) {
+						const slashIndex = lyricText.lastIndexOf("/");
+						const beforeSlash = lyricText.substring(0, slashIndex).trim();
+						const afterSlash = lyricText.substring(slashIndex + 1).trim();
+						if (afterSlash.length > 0 && beforeSlash.length > 0) {
+							lyricText = beforeSlash;
+							inlineTrans = afterSlash;
+						}
+					}
+				}
+
+				inlineTransTexts.push(inlineTrans);
+				rawLrc.push({
+					time: lyricObj.lrc.lines[0].time < 1000 ? line.time * 1000 : line.time,
+					text: lyricText,
+				});
+			}
+
+			const allTTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
+			const allRomaTexts =
+				lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
+			const tTexts = validIndices.map((vi, idx) =>
+				allTTexts[vi] || inlineTransTexts[idx] || "",
+			);
+			const romaTexts = validIndices.map((i) => allRomaTexts[i] || "");
+
+			if (filterEnabled && rawLrc.length > 0) {
+				let start = 0;
+				while (start < rawLrc.length && isMetadataLine(rawLrc[start].text)) {
+					start++;
+				}
+				let end = rawLrc.length - 1;
+				while (end >= start && isMetadataLine(rawLrc[end].text)) {
+					end--;
+				}
+				if (start > 0 || end < rawLrc.length - 1) {
+					rawLrc.splice(0, rawLrc.length, ...rawLrc.slice(start, end + 1));
+					tTexts.splice(start, end + 1 - start);
+					romaTexts.splice(start, end + 1 - start);
+				}
+			}
 
 			return {
 				format: "structured",

@@ -37,7 +37,10 @@ import {
 	BinaryMagicNumber,
 	createAmllBinaryPayload,
 } from "@/utils/createAmllBinaryPayload";
+import { createLogger } from "@/utils/logger";
 import { AudioDataBus } from "./InfLinkBridge";
+
+const logger = createLogger("AmllStateSync");
 
 export function AmllStateSync() {
 	const status = useAtomValue(connectionStatusAtom);
@@ -110,12 +113,12 @@ export function AmllStateSync() {
 							break;
 						default: {
 							const exhaustiveCheck: never = cmd;
-							console.warn("未处理的控制指令", exhaustiveCheck);
+							logger.warn("未处理的控制指令", exhaustiveCheck);
 						}
 					}
 				}
 			} catch (err) {
-				console.error("解析 AMLL WebSocket 消息失败:", err);
+				logger.error("解析 AMLL WebSocket 消息失败:", err);
 			}
 		},
 		[
@@ -188,7 +191,7 @@ export function AmllStateSync() {
 					}
 				} catch (e) {
 					if ((e as Error).name !== "AbortError") {
-						console.error("获取或发送缓存封面失败", e);
+						logger.error("获取或发送缓存封面失败", e);
 						sendStateUpdate({
 							update: "setCover",
 							source: "uri",

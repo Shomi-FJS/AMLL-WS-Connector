@@ -31,7 +31,9 @@ export function SettingItem({
 				mb: 1.5,
 				borderRadius: 3,
 				display: "flex",
-				alignItems: "center",
+				alignItems: "flex-start",
+				flexWrap: "wrap",
+				gap: 1,
 				justifyContent: "space-between",
 				borderColor: "rgba(0, 0, 0, 0.08)",
 				backgroundColor: (theme) =>
@@ -53,7 +55,7 @@ export function SettingItem({
 				</Box>
 			)}
 
-			<Box sx={{ mr: 2, flex: 1 }}>
+			<Box sx={{ mr: 2, flex: "1 1 240px", minWidth: 0 }}>
 				<Typography
 					variant="subtitle1"
 					sx={{ fontWeight: 500, fontSize: "0.95rem" }}
@@ -73,9 +75,12 @@ export function SettingItem({
 			<Box
 				sx={{
 					minWidth: "auto",
+					flex: "0 1 auto",
 					display: "flex",
 					justifyContent: "flex-end",
 					alignItems: "center",
+					ml: "auto",
+					maxWidth: "100%",
 				}}
 			>
 				{action}

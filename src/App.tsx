@@ -7,6 +7,7 @@ import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import BugReportIcon from "@mui/icons-material/BugReport";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import LinkIcon from "@mui/icons-material/Link";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
@@ -40,6 +41,7 @@ import {
 	connectionErrorAtom,
 	connectionIntentAtom,
 	connectionStatusAtom,
+	filterMetadataAtom,
 	forceReconnectTriggerAtom,
 	infLinkStatusAtom,
 	timelineOffsetAtom,
@@ -107,6 +109,7 @@ export default function App() {
 
 function Main() {
 	const [wsUrl, setWsUrl] = useAtom(wsUrlAtom);
+	const [filterMetadata, setFilterMetadata] = useAtom(filterMetadataAtom);
 	const [autoConnect, setAutoConnect] = useAtom(autoConnectAtom);
 	const [autoReconnect, setAutoReconnect] = useAtom(autoReconnectAtom);
 	const status = useAtomValue(connectionStatusAtom);
@@ -183,7 +186,18 @@ function Main() {
 	const currentAlert = alertConfig[infLinkStatus];
 
 	return (
-		<Box sx={{ pb: 4, pt: 1 }}>
+		<Box
+			sx={{
+				boxSizing: "border-box",
+				height: "100%",
+				maxHeight: "100%",
+				overflowY: "auto",
+				overflowX: "hidden",
+				pb: 4,
+				pt: 1,
+				pr: 1,
+			}}
+		>
 			<Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
 				AMLL WS Connector 设置
 			</Typography>
@@ -260,6 +274,18 @@ function Main() {
 						placeholder="ws://localhost:11444"
 						disabled={isConnected || isConnecting}
 						sx={{ width: 220 }}
+					/>
+				}
+			/>
+
+			<SettingItem
+				icon={<FilterAltIcon />}
+				title="过滤创作人元数据"
+				description="过滤歌词中的作词、作曲等元数据行（预计切换歌曲生效）"
+				action={
+					<Switch
+						checked={filterMetadata}
+						onChange={(_, checked) => setFilterMetadata(checked)}
 					/>
 				}
 			/>
