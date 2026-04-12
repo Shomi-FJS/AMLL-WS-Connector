@@ -9,11 +9,11 @@ import {
 	lyricAtom,
 	lyricSearchStatusAtom,
 	lyricSourcesConfigAtom,
+	type PluginLyricState,
 	type RawLyricData,
 	rawLyricsContentAtom,
 	songInfoAtom,
 } from "@/store";
-import type { AmllLyricContent } from "@/types/ws";
 
 export function LyricSync() {
 	const setLyric = useSetAtom(lyricAtom);
@@ -33,7 +33,7 @@ export function LyricSync() {
 	useEffect(() => {
 		managerRef.current = new LyricManager();
 
-		const handleLyricUpdate = (event: CustomEvent<AmllLyricContent | null>) =>
+		const handleLyricUpdate = (event: CustomEvent<PluginLyricState | null>) =>
 			setLyric(event.detail);
 
 		const handleStatusChange = (

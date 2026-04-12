@@ -91,8 +91,20 @@ export const playModeAtom = atom<PlayMode | null>(null);
 /** 当前音量信息 */
 export const volumeInfoAtom = atom<VolumeInfo | null>(null);
 
+/** 插件内部歌词状态的联合类型 */
+export type PluginLyricState =
+	| {
+			type: "scrollable";
+			payload: AmllLyricContent;
+	  }
+	| {
+			type: "unscrollable";
+			rawText: string;
+			payload: AmllLyricContent;
+	  };
+
 /** 当前的歌词信息 */
-export const lyricAtom = atom<AmllLyricContent | null>(null);
+export const lyricAtom = atom<PluginLyricState | null>(null);
 
 /**
  * 默认的歌词源配置
@@ -151,6 +163,7 @@ export interface RawLyricData {
 	main: string;
 	trans?: string;
 	roma?: string;
+	scrollable?: boolean;
 }
 
 /**

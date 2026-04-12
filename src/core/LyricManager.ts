@@ -2,14 +2,17 @@ import type {
 	BaseLyricAdapter,
 	LyricAdapterEventMap,
 } from "@/adapters/BaseLyricAdapter";
-import type { LyricSearchStatus, RawLyricData } from "@/store";
+import type {
+	LyricSearchStatus,
+	PluginLyricState,
+	RawLyricData,
+} from "@/store";
 import type { SongInfo } from "@/types/inflink";
-import type { AmllLyricContent } from "@/types/ws";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
 
 export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 	private adapters: BaseLyricAdapter[] = [];
-	private caches: Map<string, AmllLyricContent | null> = new Map();
+	private caches: Map<string, PluginLyricState | null> = new Map();
 	private rawLyricDataCache: Record<string, RawLyricData | null> = {};
 
 	private currentMusicId: string | number | null = null;
@@ -78,7 +81,7 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 	}
 
 	private handleAdapterUpdate = (
-		event: CustomEvent<AmllLyricContent | null>,
+		event: CustomEvent<PluginLyricState | null>,
 	) => {
 		const adapter = event.currentTarget as BaseLyricAdapter;
 		const lyric = event.detail;
@@ -104,7 +107,7 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 
 	private evaluateAndDispatch() {
 		let hasFoundHigherPriority = false;
-		let finalLyric: AmllLyricContent | null = null;
+		let finalLyric: PluginLyricState | null = null;
 		let isWaitingForHigherPriority = false;
 
 		for (const adapter of this.adapters) {

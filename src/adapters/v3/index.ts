@@ -4,8 +4,8 @@ import {
 	mergeSubLyrics,
 } from "@/core/parsers/lyricBuilder";
 import { parseYrc } from "@/core/parsers/yrcParser";
+import type { PluginLyricState } from "@/store";
 import type { v3 } from "@/types/ncm";
-import type { AmllLyricContent } from "@/types/ws";
 import { extractRawLyricData } from "@/utils/format-lyric";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import {
@@ -111,6 +111,7 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 			roma: lyricState.yrcInfo?.yrc
 				? lyricState.yrcInfo.yrcRoma
 				: lyricState.romaLyricLines,
+			scrollable: lyricState.scrollable,
 		});
 
 		this.dispatch("rawlyric", rawLyricData);
@@ -132,11 +133,18 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 
 	private parseNcmLyric(
 		rawState: v3.NcmAsyncLyricState,
-	): AmllLyricContent | null {
+	): PluginLyricState | null {
 		if (rawState.scrollable === false) {
+			const lines = rawState.lyricLines || [];
+			const rawText = lines.map((l) => l.lyric).join("\n");
+
 			return {
-				format: "structured",
-				lines: [],
+				type: "unscrollable",
+				rawText,
+				payload: {
+					format: "structured",
+					lines: [],
+				},
 			};
 		}
 
@@ -152,8 +160,11 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 				);
 
 				return {
-					format: "structured",
-					lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
+					type: "scrollable",
+					payload: {
+						format: "structured",
+						lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
+					},
 				};
 			}
 		}
@@ -171,8 +182,11 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 		const romaTexts = rawState.romaLyricLines?.map((l) => l.lyric) ?? [];
 
 		return {
-			format: "structured",
-			lines: buildAmllLyricLines(rawLrc, tTexts, romaTexts),
+			type: "scrollable",
+			payload: {
+				format: "structured",
+				lines: buildAmllLyricLines(rawLrc, tTexts, romaTexts),
+			},
 		};
 	}
 

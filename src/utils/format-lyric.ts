@@ -29,6 +29,7 @@ export interface FormatRawLyricParams {
 	lrcLines?: RawLyricLine[];
 	trans?: string | RawLyricLine[];
 	roma?: string | RawLyricLine[];
+	scrollable?: boolean;
 }
 
 export function extractRawLyricData(
@@ -45,6 +46,9 @@ export function extractRawLyricData(
 		}
 
 		if (content.length > 0) {
+			if (params.scrollable === false) {
+				return content.map((l) => l.lyric).join("\n");
+			}
 			return buildLrcString(content);
 		}
 
@@ -59,14 +63,19 @@ export function extractRawLyricData(
 			main: params.yrc,
 			trans,
 			roma,
+			scrollable: params.scrollable,
 		};
 	}
 
 	if (params.lrcLines && params.lrcLines.length > 0) {
 		return {
-			main: buildLrcString(params.lrcLines),
+			main:
+				params.scrollable === false
+					? params.lrcLines.map((l) => l.lyric).join("\n")
+					: buildLrcString(params.lrcLines),
 			trans,
 			roma,
+			scrollable: params.scrollable,
 		};
 	}
 

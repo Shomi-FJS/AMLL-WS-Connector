@@ -276,6 +276,7 @@ export function LyricSourcesDialog({ open, onClose }: LyricSourcesDialogProps) {
 								</Box>
 
 								<ListItemText
+									disableTypography
 									primary={
 										<Typography
 											variant="subtitle2"

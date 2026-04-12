@@ -1,11 +1,14 @@
-import type { LyricSearchStatus, RawLyricData } from "@/store";
+import type {
+	LyricSearchStatus,
+	PluginLyricState,
+	RawLyricData,
+} from "@/store";
 import type { SongInfo } from "@/types/inflink";
-import type { AmllLyricContent } from "@/types/ws";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
 
 export interface LyricAdapterEventMap {
 	/** 当歌词解析完成或发生时间轴偏移时派发 */
-	update: CustomEvent<AmllLyricContent | null>;
+	update: CustomEvent<PluginLyricState | null>;
 	/** 歌词获取状态变更时触发 */
 	statuschange: CustomEvent<Record<string, LyricSearchStatus>>;
 	/** 获取到原始歌词数据时派发 */

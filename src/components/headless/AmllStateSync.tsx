@@ -251,7 +251,7 @@ export function AmllStateSync() {
 
 		sendStateUpdate({
 			update: "setLyric",
-			...lyricContent,
+			...lyricContent.payload,
 		});
 	}, [lyricContent, status, sendStateUpdate]);
 

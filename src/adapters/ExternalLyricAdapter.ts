@@ -4,8 +4,8 @@ import { parseLys } from "@/core/parsers/lysParser";
 import { parseQrc } from "@/core/parsers/qrcParser";
 import { parseTtml } from "@/core/parsers/ttmlParser";
 import { parseYrc } from "@/core/parsers/yrcParser";
+import type { PluginLyricState } from "@/store";
 import type { SongInfo } from "@/types/inflink";
-import type { AmllLyricContent } from "@/types/ws";
 import { LyricFormat, type LyricSource } from "@/utils/source";
 import { BaseLyricAdapter } from "./BaseLyricAdapter";
 
@@ -68,20 +68,26 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 	private parseRawLyric(
 		text: string,
 		format: LyricFormat,
-	): AmllLyricContent | null {
+	): PluginLyricState | null {
 		if (!text.trim()) return null;
 
 		switch (format) {
-			case LyricFormat.TTML:
-				return parseTtml(text);
+			case LyricFormat.TTML: {
+				const result = parseTtml(text);
+				if (!result) return null;
+				return { type: "scrollable", payload: result };
+			}
 
 			case LyricFormat.LRC: {
 				const rawLrc = parseLrc(text);
 				if (rawLrc.length === 0) return null;
 
 				return {
-					format: "structured",
-					lines: buildAmllLyricLines(rawLrc, [], []),
+					type: "scrollable",
+					payload: {
+						format: "structured",
+						lines: buildAmllLyricLines(rawLrc, [], []),
+					},
 				};
 			}
 
@@ -90,8 +96,11 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 				if (yrcLines.length === 0) return null;
 
 				return {
-					format: "structured",
-					lines: yrcLines,
+					type: "scrollable",
+					payload: {
+						format: "structured",
+						lines: yrcLines,
+					},
 				};
 			}
 
@@ -100,8 +109,11 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 				if (lysLines.length === 0) return null;
 
 				return {
-					format: "structured",
-					lines: lysLines,
+					type: "scrollable",
+					payload: {
+						format: "structured",
+						lines: lysLines,
+					},
 				};
 			}
 
@@ -110,8 +122,11 @@ export class ExternalLyricAdapter extends BaseLyricAdapter {
 				if (qrcLines.length === 0) return null;
 
 				return {
-					format: "structured",
-					lines: qrcLines,
+					type: "scrollable",
+					payload: {
+						format: "structured",
+						lines: qrcLines,
+					},
 				};
 			}
 

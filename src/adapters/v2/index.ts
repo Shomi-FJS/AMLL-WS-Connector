@@ -5,8 +5,9 @@ import {
 	mergeSubLyrics,
 } from "@/core/parsers/lyricBuilder";
 import { parseYrc } from "@/core/parsers/yrcParser";
+import type { PluginLyricState } from "@/store";
 import type { v2 } from "@/types/ncm";
-import type { AmllLyricContent, AmllLyricLine } from "@/types/ws";
+import type { AmllLyricLine } from "@/types/ws";
 import { extractRawLyricData } from "@/utils/format-lyric";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
@@ -17,7 +18,7 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	private originalGe: v2.NejEventBus["Ge"] | null = null;
 	private eventBus: v2.NejEventBus | null = null;
 
-	private baseLyric: AmllLyricContent | null = null;
+	private baseLyric: PluginLyricState | null = null;
 	private currentOffset: number = 0;
 
 	public async init(): Promise<boolean> {
@@ -93,6 +94,7 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 			lrcLines: payload.lyric.lrc?.lines,
 			trans: payload.lyric.tlyric?.lines,
 			roma: payload.lyric.romalrc?.lines,
+			scrollable: payload.lyric.lrc?.scrollable,
 		});
 
 		this.dispatch("rawlyric", rawLyricData);
@@ -137,41 +139,58 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	 * 但 v2 只会修改负载属性，需要手动计算
 	 */
 	private applyOffset(
-		baseLyric: AmllLyricContent,
+		baseLyric: PluginLyricState,
 		offset: number,
-	): AmllLyricContent {
-		if (baseLyric.format !== "structured") {
+	): PluginLyricState {
+		if (baseLyric.type === "unscrollable") {
 			return baseLyric;
 		}
 
-		const adjustedLines: AmllLyricLine[] = baseLyric.lines.map((line) => {
-			return {
-				...line,
-				startTime: Math.max(0, line.startTime - offset),
-				endTime: Math.max(0, line.endTime - offset),
-				words: line.words?.map((word) => ({
-					...word,
-					startTime: Math.max(0, word.startTime - offset),
-					endTime: Math.max(0, word.endTime - offset),
-				})),
-			};
-		});
+		if (baseLyric.payload.format !== "structured") {
+			return baseLyric;
+		}
+
+		const adjustedLines: AmllLyricLine[] = baseLyric.payload.lines.map(
+			(line) => {
+				return {
+					...line,
+					startTime: Math.max(0, line.startTime - offset),
+					endTime: Math.max(0, line.endTime - offset),
+					words: line.words?.map((word) => ({
+						...word,
+						startTime: Math.max(0, word.startTime - offset),
+						endTime: Math.max(0, word.endTime - offset),
+					})),
+				};
+			},
+		);
 
 		return {
-			format: "structured",
-			lines: adjustedLines,
+			type: "scrollable",
+			payload: {
+				format: "structured",
+				lines: adjustedLines,
+			},
 		};
 	}
 
 	private parseV2Payload(
 		lyricObj: NonNullable<v2.LrcLoadPayload["lyric"]>,
-	): AmllLyricContent | null {
+	): PluginLyricState | null {
 		if (lyricObj.lrc?.scrollable === false) {
+			const lines = lyricObj.lrc?.lines || [];
+			const rawText = lines.map((l) => l.lyric).join("\n");
+
 			return {
-				format: "structured",
-				lines: [],
+				type: "unscrollable",
+				rawText,
+				payload: {
+					format: "structured",
+					lines: [],
+				},
 			};
 		}
+
 		if (lyricObj.yrc?.lyric) {
 			const yrcLines = parseYrc(lyricObj.yrc.lyric);
 
@@ -180,8 +199,11 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 				const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
 
 				return {
-					format: "structured",
-					lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
+					type: "scrollable",
+					payload: {
+						format: "structured",
+						lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
+					},
 				};
 			}
 		}
@@ -192,15 +214,18 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 			lyricObj.lrc.lines.length > 0
 		) {
 			const rawLrc: LrcLine[] = lyricObj.lrc.lines.map((l) => ({
-				time: l.time * 1000,
+				time: (l.time ?? 0) * 1000,
 				text: l.lyric,
 			}));
 			const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
 			const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
 
 			return {
-				format: "structured",
-				lines: buildAmllLyricLines(rawLrc, tTexts, romaTexts),
+				type: "scrollable",
+				payload: {
+					format: "structured",
+					lines: buildAmllLyricLines(rawLrc, tTexts, romaTexts),
+				},
 			};
 		}
 

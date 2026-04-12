@@ -1,5 +1,8 @@
+import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import SpeakerNotesOffIcon from "@mui/icons-material/SpeakerNotesOff";
 import {
+	Alert,
 	Box,
 	Button,
 	Dialog,
@@ -67,10 +70,39 @@ export function RawLyricViewerDialog({
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-			<DialogTitle sx={{ fontWeight: "bold" }}>查看原始歌词</DialogTitle>
+		<Dialog
+			open={open}
+			onClose={onClose}
+			fullWidth
+			maxWidth="md"
+			slotProps={{
+				paper: {
+					sx: { borderRadius: 2 },
+				},
+			}}
+		>
+			<DialogTitle sx={{ fontWeight: "bold", pb: 1.5 }}>
+				查看原始歌词
+			</DialogTitle>
 
-			<DialogContent dividers sx={{ display: "flex", flexDirection: "column" }}>
+			<DialogContent
+				dividers
+				sx={{ display: "flex", flexDirection: "column", p: 0 }}
+			>
+				{content?.scrollable === false && (
+					<Alert
+						severity="info"
+						sx={{
+							borderRadius: 0,
+							borderBottom: 1,
+							borderColor: "divider",
+							py: 0.5,
+						}}
+					>
+						当前歌曲无滚动歌词
+					</Alert>
+				)}
+
 				{availableTabs.length > 0 ? (
 					<>
 						<Box
@@ -81,7 +113,8 @@ export function RawLyricViewerDialog({
 								alignItems: "center",
 								justifyContent: "space-between",
 								bgcolor: "background.paper",
-								pr: 1,
+								pl: 1,
+								pr: 1.5,
 							}}
 						>
 							<Tabs
@@ -89,28 +122,39 @@ export function RawLyricViewerDialog({
 								onChange={handleTabChange}
 								variant="scrollable"
 								scrollButtons="auto"
-								sx={{ px: 2, flex: 1 }}
+								sx={{ flex: 1, minHeight: 48 }}
 							>
 								{availableTabs.map((tab) => (
-									<Tab key={tab.label} label={tab.label} />
+									<Tab
+										key={tab.label}
+										label={tab.label}
+										sx={{ minHeight: 48, fontWeight: 500 }}
+									/>
 								))}
 							</Tabs>
 
-							<Tooltip title={copySuccess ? "已复制" : "复制"}>
+							<Tooltip title={copySuccess ? "已复制" : "复制"} placement="left">
 								<IconButton
 									onClick={handleCopy}
 									size="small"
-									color="primary"
-									sx={{ mr: 1 }}
+									color={copySuccess ? "success" : "primary"}
+									sx={{
+										transition: "all 0.2s ease-in-out",
+										bgcolor: copySuccess ? "success.50" : "transparent",
+									}}
 								>
-									<ContentCopyIcon fontSize="small" />
+									{copySuccess ? (
+										<CheckIcon fontSize="small" />
+									) : (
+										<ContentCopyIcon fontSize="small" />
+									)}
 								</IconButton>
 							</Tooltip>
 						</Box>
 
 						<Box
 							sx={{
-								p: 2,
+								p: 2.5,
 								flex: 1,
 								overflowY: "auto",
 								bgcolor: "background.default",
@@ -120,10 +164,16 @@ export function RawLyricViewerDialog({
 								component="pre"
 								sx={{
 									m: 0,
+									p: 2.5,
+									borderRadius: 2,
+									bgcolor: "background.paper",
+									border: "1px solid",
+									borderColor: "divider",
 									whiteSpace: "pre-wrap",
 									wordBreak: "break-all",
 									fontFamily: "monospace",
 									fontSize: "0.875rem",
+									lineHeight: 1.8,
 									color: "text.primary",
 									userSelect: "text",
 									WebkitUserSelect: "text",
@@ -137,18 +187,23 @@ export function RawLyricViewerDialog({
 					<Box
 						sx={{
 							display: "flex",
+							flexDirection: "column",
 							justifyContent: "center",
 							alignItems: "center",
-							minHeight: "150px",
+							minHeight: "250px",
+							gap: 2,
+							color: "text.disabled",
+							bgcolor: "background.default",
 						}}
 					>
-						<Typography color="text.secondary">暂无歌词</Typography>
+						<SpeakerNotesOffIcon sx={{ fontSize: 48, opacity: 0.6 }} />
+						<Typography variant="body1">暂无歌词数据</Typography>
 					</Box>
 				)}
 			</DialogContent>
 
-			<DialogActions>
-				<Button onClick={onClose} color="inherit">
+			<DialogActions sx={{ px: 2.5, py: 1.5 }}>
+				<Button onClick={onClose} variant="outlined" color="inherit">
 					关闭
 				</Button>
 			</DialogActions>
