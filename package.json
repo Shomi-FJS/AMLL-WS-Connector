@@ -1,6 +1,6 @@
 {
 	"name": "amll-ws-connector",
-	"version": "0.1.2",
+	"version": "0.1.4",
 	"module": "index.ts",
 	"type": "module",
 	"private": true,

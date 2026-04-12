@@ -1,5 +1,13 @@
 # amll-ws-connector
 
+## 0.1.4
+
+### Patch Changes
+
+- 1a9cf07: feat(ws): 添加断开自动重连功能 (#1)
+- 8304afb: fix: 修复在非滚动歌词下断开 WS 连接的 bug
+- e6ee5be: feat(ui): 优化无滚动歌词时的 UI 显示
+
 ## 0.1.2
 
 ### Patch Changes
