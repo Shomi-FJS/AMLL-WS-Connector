@@ -62,16 +62,16 @@ export function parseTtml(text: string): AmllLyricContent | null {
 			}
 		}
 
-		const amllLines = toAmllLyrics(parsedTtml, {
+		const amllLyric = toAmllLyrics(parsedTtml, {
 			// targetTranslationLanguage 是未定义的话，toAmllLyrics 会选择第一个翻译
 			translationLanguage: targetTranslationLanguage,
 		});
 
-		if (amllLines.length === 0) return null;
+		if (amllLyric.lines.length === 0) return null;
 
 		return {
 			format: "structured",
-			lines: amllLines,
+			lines: amllLyric.lines,
 		};
 	} catch (e) {
 		console.error(`[ExternalAdapter] 解析 TTML 歌词失败`, e);
