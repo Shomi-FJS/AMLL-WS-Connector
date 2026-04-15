@@ -66,44 +66,63 @@ export function useWsConnectionManager({
 
 		const initializeWs = () => {
 			setStatus("connecting");
-			const ws = new WebSocket(wsUrl);
-			wsRef.current = ws;
 
-			ws.onopen = () => {
-				clearTimer();
-				setStatus("connected");
-				contextRef.current.setError("");
-				contextRef.current.onConnected?.();
-			};
+			let finalUrl = wsUrl.trim();
+			if (
+				finalUrl &&
+				!finalUrl.startsWith("ws://") &&
+				!finalUrl.startsWith("wss://")
+			) {
+				finalUrl = `ws://${finalUrl}`;
+			}
 
-			ws.onmessage = (event) => {
-				contextRef.current.onMessage(event);
-			};
+			try {
+				const ws = new WebSocket(finalUrl);
+				wsRef.current = ws;
 
-			const handleDisconnect = (isError: boolean) => {
-				wsRef.current = null;
-				setStatus(isError ? "error" : "disconnected");
+				ws.onopen = () => {
+					clearTimer();
+					setStatus("connected");
+					contextRef.current.setError("");
+					contextRef.current.onConnected?.();
+				};
 
-				if (contextRef.current.autoReconnect) {
-					const delaySec = Math.floor(contextRef.current.reconnectDelay / 1000);
-					contextRef.current.setError(
-						isError
-							? `连接异常断开，${delaySec} 秒后尝试重连...`
-							: `连接已断开，${delaySec} 秒后尝试重连...`,
-					);
-					startCountdown();
-				} else {
-					if (isError) {
-						contextRef.current.setError(
-							"无法连接到 AMLL Player，请检查地址是否正确",
+				ws.onmessage = (event) => {
+					contextRef.current.onMessage(event);
+				};
+
+				const handleDisconnect = (isError: boolean) => {
+					wsRef.current = null;
+					setStatus(isError ? "error" : "disconnected");
+
+					if (contextRef.current.autoReconnect) {
+						const delaySec = Math.floor(
+							contextRef.current.reconnectDelay / 1000,
 						);
+						contextRef.current.setError(
+							isError
+								? `连接异常断开，${delaySec} 秒后尝试重连...`
+								: `连接已断开，${delaySec} 秒后尝试重连...`,
+						);
+						startCountdown();
+					} else {
+						if (isError) {
+							contextRef.current.setError(
+								"无法连接到 AMLL Player，请检查地址是否正确",
+							);
+						}
+						setIntent(false);
 					}
-					setIntent(false);
-				}
-			};
+				};
 
-			ws.onclose = () => handleDisconnect(false);
-			ws.onerror = () => handleDisconnect(true);
+				ws.onclose = () => handleDisconnect(false);
+				ws.onerror = () => handleDisconnect(true);
+			} catch (e) {
+				const errorMessage = e instanceof Error ? e.message : String(e);
+				setStatus("error");
+				contextRef.current.setError(`WebSocket 地址无效: ${errorMessage}`);
+				setIntent(false);
+			}
 		};
 
 		const startCountdown = () => {
