@@ -1,17 +1,23 @@
 /**
  * @fileoverview
  * 将歌曲信息同步给 AMLL Player，同时处理 AMLL Player 的控制指令
+ *
+ * 元数据过滤和 NFKC 规范化在此组件的发送阶段统一处理，
+ * 而非在歌词解析阶段，确保用户切换开关后立即生效，无需重新获取歌词。
  */
 
 import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
+import { filterStructuredLyricLines } from "@/core/parsers/metadata";
 import { useWsConnectionManager } from "@/hooks/useWsConnectionManager";
 import {
 	autoConnectAtom,
 	connectionIntentAtom,
 	connectionStatusAtom,
+	filterMetadataAtom,
 	lyricAtom,
 	nextAtom,
+	nfkcNormalizeAtom,
 	pauseAtom,
 	playAtom,
 	playbackStatusAtom,
@@ -31,13 +37,54 @@ import type {
 	AudioDataInfo,
 	RepeatMode as NCMRepeatMode,
 } from "@/types/inflink";
-import type { AmllMessage, AmllRepeatMode, AmllStateUpdate } from "@/types/ws";
+import type {
+	AmllLyricContent,
+	AmllMessage,
+	AmllRepeatMode,
+	AmllStateUpdate,
+} from "@/types/ws";
 import { CoverManager } from "@/utils/cover";
 import {
 	BinaryMagicNumber,
 	createAmllBinaryPayload,
 } from "@/utils/createAmllBinaryPayload";
 import { AudioDataBus } from "./InfLinkBridge";
+
+/**
+ * 发送前的歌词处理管线：元数据过滤 → NFKC 规范化
+ * 在发送阶段而非解析阶段处理，使得 filterMetadata / nfkcNormalize 开关
+ * 变化时只需重新发送，无需重新获取和解析歌词。
+ */
+function processLyricContent(
+	content: AmllLyricContent,
+	filterMeta: boolean,
+	nfkc: boolean,
+): AmllLyricContent {
+	if (content.format === "ttml") {
+		return content;
+	}
+
+	let lines = content.lines;
+
+	if (filterMeta) {
+		lines = filterStructuredLyricLines(lines);
+	}
+
+	if (nfkc) {
+		lines = lines.map((line) => ({
+			...line,
+			words: line.words.map((word) => ({
+				...word,
+				word: word.word.normalize("NFKC"),
+				romanWord: word.romanWord?.normalize("NFKC"),
+			})),
+			translatedLyric: line.translatedLyric?.normalize("NFKC"),
+			romanLyric: line.romanLyric?.normalize("NFKC"),
+		}));
+	}
+
+	return { format: "structured", lines };
+}
 
 export function AmllStateSync() {
 	const status = useAtomValue(connectionStatusAtom);
@@ -55,6 +102,8 @@ export function AmllStateSync() {
 	const timelineOffset = useAtomValue(timelineOffsetAtom);
 
 	const lyricContent = useAtomValue(lyricAtom);
+	const nfkcNormalize = useAtomValue(nfkcNormalizeAtom);
+	const filterMetadata = useAtomValue(filterMetadataAtom);
 
 	const play = useSetAtom(playAtom);
 	const pause = useSetAtom(pauseAtom);
@@ -246,14 +295,21 @@ export function AmllStateSync() {
 		});
 	}, [playMode, status, sendStateUpdate]);
 
+	// 歌词内容、过滤开关或规范化开关变化时，重新处理并发送
 	useEffect(() => {
 		if (!lyricContent || status !== "connected") return;
 
+		const processedPayload = processLyricContent(
+			lyricContent.payload,
+			filterMetadata,
+			nfkcNormalize,
+		);
+
 		sendStateUpdate({
 			update: "setLyric",
-			...lyricContent.payload,
+			...processedPayload,
 		});
-	}, [lyricContent, status, sendStateUpdate]);
+	}, [lyricContent, filterMetadata, nfkcNormalize, status, sendStateUpdate]);
 
 	useEffect(() => {
 		const handleAudioData = (e: Event) => {

@@ -1,9 +1,3 @@
-import { type LrcLine, parseLrc } from "@/core/parsers/lrcParser";
-import {
-	buildAmllLyricLines,
-	mergeSubLyrics,
-} from "@/core/parsers/lyricBuilder";
-import { parseYrc } from "@/core/parsers/yrcParser";
 import type { PluginLyricState } from "@/store";
 import type { v3 } from "@/types/ncm";
 import { extractRawLyricData } from "@/utils/format-lyric";
@@ -14,6 +8,10 @@ import {
 	type WebpackRequire,
 } from "@/utils/webpack";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
+import {
+	type NcmLyricDataSource,
+	parseNcmLyricGeneric,
+} from "../LyricParserHelper";
 
 export class V3LyricAdapter extends BaseLyricAdapter {
 	public readonly id = LYRIC_SOURCE_UUID_BUILTIN_NCM;
@@ -21,6 +19,17 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 	private store: v3.NCMStore | null = null;
 	private unsubscribeRedux: (() => void) | null = null;
 	private lastSentLyricJson: string | null = null;
+	// 上一次观察到的歌词状态 快照，用于 Redux subscribe 回调中的变更检测，避免状态未变时重复解析
+	private lastObservedState: Pick<
+		v3.NcmAsyncLyricState,
+		| "scrollable"
+		| "currentUsedLyric"
+		| "currentUsedLyricVersion"
+		| "yrcInfo"
+		| "lyricLines"
+		| "tlyricLines"
+		| "romaLyricLines"
+	> | null = null;
 	private initTimer: ReturnType<typeof setInterval> | null = null;
 
 	public async init(): Promise<boolean> {
@@ -78,6 +87,7 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 
 		this.store = null;
 		this.lastSentLyricJson = null;
+		this.lastObservedState = null;
 	}
 
 	private handleStoreUpdate() {
@@ -87,6 +97,35 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 		const lyricState = state["async:lyric"];
 
 		if (!lyricState || lyricState.isLoading) return;
+
+		// 构建当前歌词状态快照，与上次对比以跳过无变化的更新
+		const nextObservedState = {
+			scrollable: lyricState.scrollable,
+			currentUsedLyric: lyricState.currentUsedLyric,
+			currentUsedLyricVersion: lyricState.currentUsedLyricVersion,
+			yrcInfo: lyricState.yrcInfo,
+			lyricLines: lyricState.lyricLines,
+			tlyricLines: lyricState.tlyricLines,
+			romaLyricLines: lyricState.romaLyricLines,
+		};
+
+		// 所有字段均未变化，跳过本次解析和派发
+		if (
+			this.lastObservedState &&
+			this.lastObservedState.scrollable === nextObservedState.scrollable &&
+			this.lastObservedState.currentUsedLyric ===
+				nextObservedState.currentUsedLyric &&
+			this.lastObservedState.currentUsedLyricVersion ===
+				nextObservedState.currentUsedLyricVersion &&
+			this.lastObservedState.yrcInfo === nextObservedState.yrcInfo &&
+			this.lastObservedState.lyricLines === nextObservedState.lyricLines &&
+			this.lastObservedState.tlyricLines === nextObservedState.tlyricLines &&
+			this.lastObservedState.romaLyricLines === nextObservedState.romaLyricLines
+		) {
+			return;
+		}
+
+		this.lastObservedState = nextObservedState;
 
 		const amllLyric = this.parseNcmLyric(lyricState);
 		if (!amllLyric) {
@@ -134,60 +173,20 @@ export class V3LyricAdapter extends BaseLyricAdapter {
 	private parseNcmLyric(
 		rawState: v3.NcmAsyncLyricState,
 	): PluginLyricState | null {
-		if (rawState.scrollable === false) {
-			const lines = rawState.lyricLines || [];
-			const rawText = lines.map((l) => l.lyric).join("\n");
+		// 固定为 false：解析层保留完整数据，元数据过滤由 AmllStateSync 在发送阶段实时处理
+		const filterEnabled = false;
 
-			return {
-				type: "unscrollable",
-				rawText,
-				payload: {
-					format: "structured",
-					lines: [],
-				},
-			};
-		}
-
-		if (rawState.yrcInfo?.yrc) {
-			const yrcLines = parseYrc(rawState.yrcInfo.yrc);
-
-			if (yrcLines.length > 0) {
-				const tTexts = parseLrc(rawState.yrcInfo.yrcTrans || "").map(
-					(l) => l.text,
-				);
-				const romaTexts = parseLrc(rawState.yrcInfo.yrcRoma || "").map(
-					(l) => l.text,
-				);
-
-				return {
-					type: "scrollable",
-					payload: {
-						format: "structured",
-						lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
-					},
-				};
-			}
-		}
-
-		const lines = rawState.lyricLines;
-		if (!lines || !Array.isArray(lines) || lines.length === 0) {
-			return null;
-		}
-
-		const rawLrc: LrcLine[] = lines.map((l) => ({
-			time: (l.time ?? 0) * 1000,
-			text: l.lyric,
-		}));
-		const tTexts = rawState.tlyricLines?.map((l) => l.lyric) ?? [];
-		const romaTexts = rawState.romaLyricLines?.map((l) => l.lyric) ?? [];
-
-		return {
-			type: "scrollable",
-			payload: {
-				format: "structured",
-				lines: buildAmllLyricLines(rawLrc, tTexts, romaTexts),
-			},
+		const source: NcmLyricDataSource = {
+			getYrc: () => rawState.yrcInfo?.yrc,
+			getYrcTrans: () => rawState.yrcInfo?.yrcTrans,
+			getYrcRoma: () => rawState.yrcInfo?.yrcRoma,
+			getLrcLines: () => rawState.lyricLines,
+			getTlyricLines: () => rawState.tlyricLines,
+			getRomaLyricLines: () => rawState.romaLyricLines,
+			isScrollable: () => rawState.scrollable,
 		};
+
+		return parseNcmLyricGeneric(source, filterEnabled);
 	}
 
 	private findReduxStoreFromDva(require: WebpackRequire): v3.NCMStore | null {

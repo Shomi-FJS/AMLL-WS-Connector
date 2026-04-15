@@ -20,7 +20,8 @@ export class LyricManager extends TypedEventTarget<LyricAdapterEventMap> {
 
 	private isDebouncing = false;
 	private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-	private DEBOUNCE_DELAY_MS = 1000;
+	// 多适配器并发获取歌词时的防抖等待时间，用于等待更高优先级的适配器返回后再派发结果
+	private DEBOUNCE_DELAY_MS = 200;
 
 	public async init(): Promise<void> {
 		await Promise.all(this.adapters.map((a) => a.init()));

@@ -1,3 +1,4 @@
+import { isMetadataLine } from "@/core/parsers/metadata";
 import type { RawLyricData } from "@/store";
 
 export type RawLyricLine = {
@@ -58,21 +59,31 @@ export function extractRawLyricData(
 	const trans = resolveContent(params.trans);
 	const roma = resolveContent(params.roma);
 
-	if (params.yrc) {
+	const yrcLines = params.yrc?.split("\n").filter((line) => {
+		return !isMetadataLine(line);
+	});
+	const cleanYrc =
+		yrcLines && yrcLines.length > 0 ? yrcLines.join("\n") : undefined;
+
+	if (cleanYrc) {
 		return {
-			main: params.yrc,
+			main: cleanYrc,
 			trans,
 			roma,
 			scrollable: params.scrollable,
 		};
 	}
 
-	if (params.lrcLines && params.lrcLines.length > 0) {
+	const contentLines = params.lrcLines?.filter((l) => {
+		return (l.time ?? 0) >= 0 && !isMetadataLine(l.lyric);
+	});
+
+	if (contentLines && contentLines.length > 0) {
 		return {
 			main:
 				params.scrollable === false
-					? params.lrcLines.map((l) => l.lyric).join("\n")
-					: buildLrcString(params.lrcLines),
+					? contentLines.map((l) => l.lyric).join("\n")
+					: buildLrcString(contentLines),
 			trans,
 			roma,
 			scrollable: params.scrollable,

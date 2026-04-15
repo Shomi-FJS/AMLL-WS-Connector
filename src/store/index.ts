@@ -193,3 +193,21 @@ export const reconnectCountdownAtom = atom<number | null>(null);
  * 用于给 UI 强制重连 WS
  */
 export const forceReconnectTriggerAtom = atom(0);
+
+// 用户开关：自动过滤掉歌词中的元数据行（作词、作曲、制作人那些信息）
+// 默认开启，大部分场景 用户只想看到纯歌词
+export const FILTER_METADATA_STORAGE_KEY = "amll-ws-connector:filterMetadata";
+
+export const filterMetadataAtom = atomWithStorage(
+	FILTER_METADATA_STORAGE_KEY,
+	true,
+	undefined,
+	{ getOnInit: true },
+);
+
+export const NFKC_NORMALIZE_STORAGE_KEY = "amll-ws-connector:nfkcNormalize";
+
+export const nfkcNormalizeAtom = atomWithStorage(
+	NFKC_NORMALIZE_STORAGE_KEY,
+	true,
+);

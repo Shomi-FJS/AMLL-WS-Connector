@@ -7,10 +7,12 @@ import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import BugReportIcon from "@mui/icons-material/BugReport";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import LinkIcon from "@mui/icons-material/Link";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SyncIcon from "@mui/icons-material/Sync";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
 import WifiIcon from "@mui/icons-material/Wifi";
 import {
 	Alert,
@@ -40,11 +42,14 @@ import {
 	connectionErrorAtom,
 	connectionIntentAtom,
 	connectionStatusAtom,
+	filterMetadataAtom,
 	forceReconnectTriggerAtom,
 	infLinkStatusAtom,
+	nfkcNormalizeAtom,
 	timelineOffsetAtom,
 	wsUrlAtom,
 } from "./store";
+import { appStore } from "./store/appStore";
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
 	connected: "已连接",
@@ -94,7 +99,7 @@ export default function App() {
 	return (
 		<CacheProvider value={amllEmotionCache}>
 			<ThemeProvider theme={theme}>
-				<Provider>
+				<Provider store={appStore}>
 					<InfLinkBridge />
 					<AmllStateSync />
 					<LyricSync />
@@ -107,6 +112,8 @@ export default function App() {
 
 function Main() {
 	const [wsUrl, setWsUrl] = useAtom(wsUrlAtom);
+	const [filterMetadata, setFilterMetadata] = useAtom(filterMetadataAtom);
+	const [nfkcNormalize, setNfkcNormalize] = useAtom(nfkcNormalizeAtom);
 	const [autoConnect, setAutoConnect] = useAtom(autoConnectAtom);
 	const [autoReconnect, setAutoReconnect] = useAtom(autoReconnectAtom);
 	const status = useAtomValue(connectionStatusAtom);
@@ -260,6 +267,30 @@ function Main() {
 						placeholder="ws://localhost:11444"
 						disabled={isConnected || isConnecting}
 						sx={{ width: 220 }}
+					/>
+				}
+			/>
+
+			<SettingItem
+				icon={<FilterAltIcon />}
+				title="过滤制作信息元数据"
+				description="过滤歌词中包含行内的作词、作曲等元数据行（测试功能，出错请关闭）"
+				action={
+					<Switch
+						checked={filterMetadata}
+						onChange={(_, checked) => setFilterMetadata(checked)}
+					/>
+				}
+			/>
+
+			<SettingItem
+				icon={<TextFieldsIcon />}
+				title="Unicode 字符规范化"
+				description="将歌词内兼容性字符统一为常见形式（如⾨→門、全角标点→半角），使观感一致"
+				action={
+					<Switch
+						checked={nfkcNormalize}
+						onChange={(_, checked) => setNfkcNormalize(checked)}
 					/>
 				}
 			/>

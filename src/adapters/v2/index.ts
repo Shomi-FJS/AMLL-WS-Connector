@@ -1,16 +1,14 @@
 import { feature } from "bun:bundle";
-import type { LrcLine } from "@/core/parsers/lrcParser";
-import {
-	buildAmllLyricLines,
-	mergeSubLyrics,
-} from "@/core/parsers/lyricBuilder";
-import { parseYrc } from "@/core/parsers/yrcParser";
 import type { PluginLyricState } from "@/store";
 import type { v2 } from "@/types/ncm";
 import type { AmllLyricLine } from "@/types/ws";
 import { extractRawLyricData } from "@/utils/format-lyric";
 import { LYRIC_SOURCE_UUID_BUILTIN_NCM } from "@/utils/source";
 import { BaseLyricAdapter } from "../BaseLyricAdapter";
+import {
+	type NcmLyricDataSource,
+	parseNcmLyricGeneric,
+} from "../LyricParserHelper";
 
 export class V2LyricAdapter extends BaseLyricAdapter {
 	public readonly id = LYRIC_SOURCE_UUID_BUILTIN_NCM;
@@ -177,58 +175,19 @@ export class V2LyricAdapter extends BaseLyricAdapter {
 	private parseV2Payload(
 		lyricObj: NonNullable<v2.LrcLoadPayload["lyric"]>,
 	): PluginLyricState | null {
-		if (lyricObj.lrc?.scrollable === false) {
-			const lines = lyricObj.lrc?.lines || [];
-			const rawText = lines.map((l) => l.lyric).join("\n");
+		// 固定为 false：解析层保留完整数据，元数据过滤由 AmllStateSync 在发送阶段实时处理
+		const filterEnabled = false;
 
-			return {
-				type: "unscrollable",
-				rawText,
-				payload: {
-					format: "structured",
-					lines: [],
-				},
-			};
-		}
+		const source: NcmLyricDataSource = {
+			getYrc: () => lyricObj.yrc?.lyric,
+			getYrcTrans: () => undefined,
+			getYrcRoma: () => undefined,
+			getLrcLines: () => lyricObj.lrc?.lines,
+			getTlyricLines: () => lyricObj.tlyric?.lines,
+			getRomaLyricLines: () => lyricObj.romalrc?.lines,
+			isScrollable: () => lyricObj.lrc?.scrollable ?? true,
+		};
 
-		if (lyricObj.yrc?.lyric) {
-			const yrcLines = parseYrc(lyricObj.yrc.lyric);
-
-			if (yrcLines.length > 0) {
-				const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
-				const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
-
-				return {
-					type: "scrollable",
-					payload: {
-						format: "structured",
-						lines: mergeSubLyrics(yrcLines, tTexts, romaTexts),
-					},
-				};
-			}
-		}
-
-		if (
-			lyricObj.lrc &&
-			Array.isArray(lyricObj.lrc.lines) &&
-			lyricObj.lrc.lines.length > 0
-		) {
-			const rawLrc: LrcLine[] = lyricObj.lrc.lines.map((l) => ({
-				time: (l.time ?? 0) * 1000,
-				text: l.lyric,
-			}));
-			const tTexts = lyricObj.tlyric?.lines?.map((l) => l.lyric) ?? [];
-			const romaTexts = lyricObj.romalrc?.lines?.map((l) => l.lyric) ?? [];
-
-			return {
-				type: "scrollable",
-				payload: {
-					format: "structured",
-					lines: buildAmllLyricLines(rawLrc, tTexts, romaTexts),
-				},
-			};
-		}
-
-		return null;
+		return parseNcmLyricGeneric(source, filterEnabled);
 	}
 }
